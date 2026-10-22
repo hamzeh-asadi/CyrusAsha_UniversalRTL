@@ -1,0 +1,22 @@
+{
+  "displayName": "CyrusAsha_UniversalRTL-1.0.0",
+  "description": "راست‌چین هوشمند پیام‌های فارسی، عربی و عبری در تمام محیط‌های Agent: Antigravity، VS Code، Cursor، Windsurf، Kiro و VSCodium. کد و ترمینال همیشه LTR می‌مانند.",
+  "cmd.enable": "CyrusAsha_UniversalRTL-1.0.0: فعال‌سازی",
+  "cmd.disable": "CyrusAsha_UniversalRTL-1.0.0: غیرفعال‌سازی",
+  "cmd.toggle": "CyrusAsha_UniversalRTL-1.0.0: روشن/خاموش",
+  "cmd.modeSmart": "CyrusAsha_UniversalRTL-1.0.0: حالت هوشمند (تشخیص خودکار)",
+  "cmd.modeRtl": "CyrusAsha_UniversalRTL-1.0.0: همه‌ی پیام‌ها راست‌چین",
+  "cmd.modeLtr": "CyrusAsha_UniversalRTL-1.0.0: همه‌ی پیام‌ها چپ‌چین",
+  "cmd.rescan": "CyrusAsha_UniversalRTL-1.0.0: اسکن مجدد رابط",
+  "configTitle": "CyrusAsha_UniversalRTL-1.0.0",
+  "cfg.enabled": "فعال بودن افزونه در شروع.",
+  "cfg.mode": "حالت جهت‌دهی موتور RTL.",
+  "cfg.mode.smart": "تشخیص خودکار جهت هر پیام بر اساس محتوای آن (پیشنهادی)",
+  "cfg.mode.rtl": "همه‌ی بلوک‌های متنی راست‌چین شوند",
+  "cfg.mode.ltr": "همه‌ی بلوک‌های متنی چپ‌چین شوند",
+  "cfg.inputs": "جهت خودکار برای کادرهای متن (dir=auto) — تایپ فارسی، مکان‌نما را راست‌چین می‌کند.",
+  "cfg.monaco": "تلاش برای راست‌چین‌کردن کادر ورودی چت Monaco وقتی متن فارسی است (هرگز به ادیتور کد یا ترمینال دست نمی‌زند).",
+  "cfg.extraCSS": "CSS سفارشی، مثلاً فونت فارسی مثل وزیرمتن.",
+  "cfg.container": "سلکتور اضافی برای ظرف‌های پیام (برای سازگاری با رابط‌های چت جدید).",
+  "cfg.exclude": "سلکتورهایی که هرگز نباید دست بخورند."
+}

@@ -1,0 +1,40 @@
+{
+  "name": "cyrusasha-universalrtl",
+  "version": "1.0.0",
+  "description": "CyrusAsha_UniversalRTL-1.0.0 — smart RTL support for IDEs, Electron apps, and web AI chats.",
+  "license": "MIT",
+  "author": "CyrusAsha",
+  "type": "commonjs",
+  "bin": {
+    "cyrusasha-universalrtl": "src/patcher/patch-electron.js"
+  },
+  "scripts": {
+    "test": "node test/engine.test.js",
+    "build:vsix": "node vscode-extension/build-vsix.js",
+    "patch": "node src/patcher/patch-electron.js",
+    "demo": "node scripts/serve-demo.js",
+    "build:assets": "node scripts/build-assets.js",
+    "test:all": "node test/engine.test.js && node test/asar.test.js && node test/patcher.test.js && node test/extension.test.js && node test/windows.test.js && node test/launchers.test.js && node scripts/build-browser-extension.js && node test/browser-extension.test.js",
+    "build": "node scripts/build-assets.js && node vscode-extension/build-vsix.js && node scripts/build-browser-extension.js && node scripts/build-chrome-crx.js",
+    "build:browser": "node scripts/build-browser-extension.js",
+    "build:chrome-crx": "node scripts/build-chrome-crx.js",
+    "pack:chrome": "node scripts/build-browser-extension.js && node scripts/build-chrome-crx.js",
+    "lint:firefox": "npm run build:browser && npx --yes web-ext lint --source-dir release/browser/firefox-unpacked",
+    "sign:firefox": "npm run build:browser && npx --yes web-ext sign --source-dir release/browser/firefox-unpacked --artifacts-dir release/browser/amo-signed --channel=unlisted",
+    "test:browser-extension": "node scripts/build-browser-extension.js && node test/browser-extension.test.js",
+    "start": "node src/gui/server.js",
+    "gui": "node src/gui/server.js",
+    "test:gui": "node test/gui.test.js",
+    "build:win": "node scripts/build-windows-exe.js",
+    "test:launchers": "node test/launchers.test.js",
+    "diagnose": "node -e \"const p=require('./src/shared/paths');console.log('root:',p.projectRoot());console.log('engine:',p.findAsset('src/engine/rtl-engine.js'))\""
+  },
+  "devDependencies": {
+    "@electron/asar": "^3.4.1",
+    "crx3": "1.1.3",
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "playwright": "^1.64.1",
+    "postject": "^1.0.0-alpha.6"
+  }
+}

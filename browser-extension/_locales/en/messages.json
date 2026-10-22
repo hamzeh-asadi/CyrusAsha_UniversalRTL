@@ -1,0 +1,18 @@
+{
+  "extName": {
+    "message": "CyrusAsha_UniversalRTL-1.0.0",
+    "description": "The browser-extension product name shown by Chrome and Firefox."
+  },
+  "extShortName": {
+    "message": "CyrusAsha",
+    "description": "Short browser-extension name."
+  },
+  "extDescription": {
+    "message": "Smart RTL for AI chats and custom HTTPS sites you choose. Keep code LTR. Local processing; no data collection.",
+    "description": "Bilingual store description; the full listing is provided separately."
+  },
+  "actionTitle": {
+    "message": "CyrusAsha_UniversalRTL settings",
+    "description": "Tooltip for the extension toolbar icon."
+  }
+}

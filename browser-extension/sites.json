@@ -1,0 +1,128 @@
+[
+  {
+    "id": "chatgpt",
+    "label": { "fa": "ChatGPT", "en": "ChatGPT" },
+    "hosts": ["chatgpt.com", "chat.openai.com"],
+    "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"]
+  },
+  {
+    "id": "claude",
+    "label": { "fa": "Claude", "en": "Claude" },
+    "hosts": ["claude.ai"],
+    "matches": ["https://claude.ai/*"]
+  },
+  {
+    "id": "gemini",
+    "label": { "fa": "Gemini", "en": "Gemini" },
+    "hosts": ["gemini.google.com"],
+    "matches": ["https://gemini.google.com/*"]
+  },
+  {
+    "id": "aistudio",
+    "label": { "fa": "Google AI Studio", "en": "Google AI Studio" },
+    "hosts": ["aistudio.google.com"],
+    "matches": ["https://aistudio.google.com/*"]
+  },
+  {
+    "id": "deepseek",
+    "label": { "fa": "DeepSeek", "en": "DeepSeek" },
+    "hosts": ["chat.deepseek.com"],
+    "matches": ["https://chat.deepseek.com/*"]
+  },
+  {
+    "id": "perplexity",
+    "label": { "fa": "Perplexity", "en": "Perplexity" },
+    "hosts": ["www.perplexity.ai", "perplexity.ai"],
+    "matches": ["https://www.perplexity.ai/*", "https://perplexity.ai/*"]
+  },
+  {
+    "id": "qwen",
+    "label": { "fa": "Qwen", "en": "Qwen" },
+    "hosts": ["chat.qwen.ai"],
+    "matches": ["https://chat.qwen.ai/*"]
+  },
+  {
+    "id": "grok",
+    "label": { "fa": "Grok", "en": "Grok" },
+    "hosts": ["grok.com", "x.com"],
+    "matches": ["https://grok.com/*", "https://x.com/i/grok*"]
+  },
+  {
+    "id": "you",
+    "label": { "fa": "You.com", "en": "You.com" },
+    "hosts": ["you.com"],
+    "matches": ["https://you.com/*"]
+  },
+  {
+    "id": "copilot",
+    "label": { "fa": "Microsoft Copilot", "en": "Microsoft Copilot" },
+    "hosts": ["copilot.microsoft.com"],
+    "matches": ["https://copilot.microsoft.com/*"]
+  },
+  {
+    "id": "poe",
+    "label": { "fa": "Poe", "en": "Poe" },
+    "hosts": ["poe.com"],
+    "matches": ["https://poe.com/*"]
+  },
+  {
+    "id": "kimi",
+    "label": { "fa": "Kimi", "en": "Kimi" },
+    "hosts": ["kimi.moonshot.cn", "www.kimi.com", "kimi.com"],
+    "matches": ["https://kimi.moonshot.cn/*", "https://www.kimi.com/*", "https://kimi.com/*"]
+  },
+  {
+    "id": "mistral",
+    "label": { "fa": "Mistral", "en": "Mistral" },
+    "hosts": ["chat.mistral.ai"],
+    "matches": ["https://chat.mistral.ai/*"]
+  },
+  {
+    "id": "chatglm",
+    "label": { "fa": "ChatGLM", "en": "ChatGLM" },
+    "hosts": ["chatglm.cn"],
+    "matches": ["https://chatglm.cn/*"]
+  },
+  {
+    "id": "yuanbao",
+    "label": { "fa": "Tencent Yuanbao", "en": "Tencent Yuanbao" },
+    "hosts": ["yuanbao.tencent.com"],
+    "matches": ["https://yuanbao.tencent.com/*"]
+  },
+  {
+    "id": "tongyi",
+    "label": { "fa": "Alibaba Tongyi", "en": "Alibaba Tongyi" },
+    "hosts": ["tongyi.aliyun.com"],
+    "matches": ["https://tongyi.aliyun.com/*"]
+  },
+  {
+    "id": "lmarena",
+    "label": { "fa": "LMArena", "en": "LMArena" },
+    "hosts": ["chat.lmsys.org"],
+    "matches": ["https://chat.lmsys.org/*"]
+  },
+  {
+    "id": "openrouter",
+    "label": { "fa": "OpenRouter", "en": "OpenRouter" },
+    "hosts": ["openrouter.ai"],
+    "matches": ["https://openrouter.ai/chat*"]
+  },
+  {
+    "id": "character",
+    "label": { "fa": "Character.AI", "en": "Character.AI" },
+    "hosts": ["character.ai"],
+    "matches": ["https://character.ai/*"]
+  },
+  {
+    "id": "doubao",
+    "label": { "fa": "Doubao", "en": "Doubao" },
+    "hosts": ["www.doubao.com", "doubao.com"],
+    "matches": ["https://www.doubao.com/*", "https://doubao.com/*"]
+  },
+  {
+    "id": "minimax",
+    "label": { "fa": "MiniMax", "en": "MiniMax" },
+    "hosts": ["chat.minimax.io"],
+    "matches": ["https://chat.minimax.io/*"]
+  }
+]

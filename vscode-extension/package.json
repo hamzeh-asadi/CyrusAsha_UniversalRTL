@@ -1,0 +1,115 @@
+{
+  "name": "universalrtl",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "1.0.0",
+  "publisher": "cyrusasha",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "rtl",
+    "persian",
+    "farsi",
+    "arabic",
+    "hebrew",
+    "right-to-left",
+    "chat",
+    "ai",
+    "copilot",
+    "antigravity",
+    "cursor",
+    "windsurf"
+  ],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "rtlUniversal.enable",
+        "title": "%cmd.enable%"
+      },
+      {
+        "command": "rtlUniversal.disable",
+        "title": "%cmd.disable%"
+      },
+      {
+        "command": "rtlUniversal.toggle",
+        "title": "%cmd.toggle%"
+      },
+      {
+        "command": "rtlUniversal.setModeSmart",
+        "title": "%cmd.modeSmart%"
+      },
+      {
+        "command": "rtlUniversal.setModeRtl",
+        "title": "%cmd.modeRtl%"
+      },
+      {
+        "command": "rtlUniversal.setModeLtr",
+        "title": "%cmd.modeLtr%"
+      },
+      {
+        "command": "rtlUniversal.rescan",
+        "title": "%cmd.rescan%"
+      }
+    ],
+    "configuration": {
+      "title": "%configTitle%",
+      "properties": {
+        "rtlUniversal.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.enabled%"
+        },
+        "rtlUniversal.mode": {
+          "type": "string",
+          "enum": [
+            "smart",
+            "rtl",
+            "ltr"
+          ],
+          "enumDescriptions": [
+            "%cfg.mode.smart%",
+            "%cfg.mode.rtl%",
+            "%cfg.mode.ltr%"
+          ],
+          "default": "smart",
+          "description": "%cfg.mode%"
+        },
+        "rtlUniversal.inputs": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.inputs%"
+        },
+        "rtlUniversal.monacoChatInput": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.monaco%"
+        },
+        "rtlUniversal.extraCSS": {
+          "type": "string",
+          "default": "",
+          "description": "%cfg.extraCSS%"
+        },
+        "rtlUniversal.containerSelector": {
+          "type": "string",
+          "default": "",
+          "description": "%cfg.container%"
+        },
+        "rtlUniversal.excludeSelector": {
+          "type": "string",
+          "default": "",
+          "description": "%cfg.exclude%"
+        }
+      }
+    }
+  }
+}

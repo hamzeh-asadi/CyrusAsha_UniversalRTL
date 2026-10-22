@@ -1,0 +1,6 @@
+# Normalize text in the repository and keep cross-platform source files as LF.
+* text=auto eol=lf
+
+# Windows command scripts require CRLF for cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf

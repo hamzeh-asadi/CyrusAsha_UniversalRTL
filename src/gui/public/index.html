@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل (Control Panel)
+  ----------------------------------------------------------------------------
+  این فایل رابط کاربری است و دو زبان دارد: فارسی (پیش‌فرض) و انگلیسی.
+  نحوه‌ی دوزبانه‌کردن:
+
+    ۱. برای متن‌های ثابت HTML از data-i18n="کلید" استفاده می‌شود.
+    ۲. برای placeholder کادرها: data-i18n-ph="کلید"
+    ۳. برای title (tooltip): data-i18n-title="کلید"
+    ۴. متن‌های پویا (کارت برنامه‌ها، گزارش و…) با تابع t('کلید') ساخته می‌شوند.
+    ۵. دیکشنری همه‌ی متن‌ها پایین‌تر در شیء STR است.
+
+  اگر می‌خواهی متن یا زبان جدیدی اضافه کنی، فقط شیء STR را کامل کن.
+  ============================================================================
+-->
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل</title>
+<link rel="icon" type="image/png" href="/brand/CyrusAsha_UniversalRTL.png">
+<style>
+  /* ------------------------------------------------------------------------
+     طراحی: رنگ‌ها و اندازه‌ها در متغیرهای CSS نگه داشته شده‌اند تا تغییرشان آسان باشد.
+     ------------------------------------------------------------------------ */
+  :root{
+    --indigo:#4f46e5; --violet:#7c3aed; --ink:#151327; --muted:#6b7280;
+    --line:#e7e8f3; --card:#fff; --bg:#f2f3fb; --ok:#059669; --okbg:#d1fae5;
+    --warn:#b45309; --warnbg:#fef3c7; --dang:#dc2626;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"Vazirmatn","Segoe UI",Tahoma,"Noto Sans Arabic",sans-serif;
+    background:
+      radial-gradient(1000px 460px at 100% -8%, #e8e5ff 0%, transparent 60%),
+      radial-gradient(900px 420px at -5% 0%, #e8f0ff 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink); min-height:100vh;
+  }
+  /* در حالت انگلیسی، فونت کمی متفاوت و طبیعی‌تر است */
+  html[lang="en"] body{font-family:"Segoe UI","Inter",system-ui,Tahoma,sans-serif}
+  button{font:inherit}
+  code,.mono{font-family:"Cascadia Code",Consolas,monospace}
+
+  /* ---------- نوار بالا ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:13px 22px;background:rgba(255,255,255,.86);backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--line);
+  }
+  .logo{width:46px;height:46px;border-radius:13px;flex:0 0 auto;object-fit:cover;background:#06121f;border:1px solid rgba(14,165,233,.28);box-shadow:0 8px 20px rgba(6,18,31,.26)}
+  .brand h1{margin:0;font-size:16.5px;font-weight:800;letter-spacing:-.2px}
+  .brand p{margin:1px 0 0;font-size:11.5px;color:var(--muted)}
+  .grow{flex:1}
+  .pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:700;background:#eef0ff;color:#4338ca}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* ---------- دکمه‌ها ---------- */
+  .btn{
+    border:0;border-radius:11px;padding:9px 15px;font-size:12.5px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;transition:.15s;white-space:nowrap;
+  }
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.primary{background:linear-gradient(145deg,var(--indigo),var(--violet));color:#fff;box-shadow:0 8px 18px rgba(79,70,229,.28)}
+  .btn.primary:hover:not(:disabled){transform:translateY(-1px)}
+  .btn.soft{background:#eef0ff;color:#4338ca}
+  .btn.soft:hover:not(:disabled){background:#e2e6ff}
+  .btn.ghost{background:#fff;color:#374151;border:1px solid var(--line)}
+  .btn.ghost:hover:not(:disabled){border-color:#c7cbe8;background:#fafaff}
+  .btn.danger{background:#fff1f2;color:#be123c;border:1px solid #fecdd3}
+  .btn.danger:hover:not(:disabled){background:#ffe4e6}
+    .btn.sm{padding:6px 11px;font-size:11.5px;border-radius:9px}
+    /* لینک‌هایی که ظاهر دکمه دارند (مثل «نصب یوزراسکریپت») نباید زیرخط و رنگ آبی لینک بگیرند */
+    a.btn{text-decoration:none}
+    .web-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .web-install-help{margin-top:10px}
+    .web-copilot-note{display:flex;gap:4px;flex-wrap:wrap;align-items:baseline}
+    .inline-link{color:var(--indigo);font-weight:800;text-decoration:none;border-bottom:1px dotted currentColor}
+    .inline-link:hover{color:var(--violet)}
+    .web-alt{margin-top:14px;padding-top:11px;border-top:1px solid #f0f1f8}
+    .web-alt summary{font-size:11.5px;font-weight:800;color:#4b5568;cursor:pointer;list-style:none}
+    .web-alt summary::-webkit-details-marker{display:none}
+    .web-alt summary::after{content:'⌄';margin-inline-start:7px;color:var(--muted)}
+    .web-alt[open] summary::after{content:'⌃'}
+
+  /* نوار ارتباط در پایین صفحه / Bilingual project links at the bottom of the panel. */
+  .site-footer{max-width:1260px;margin:-46px auto 24px;padding:0 20px}
+  .site-footer-inner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:13px 16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.8);box-shadow:0 10px 26px rgba(21,19,39,.04)}
+  .footer-label{font-size:12px;font-weight:800;color:var(--muted)}
+  .footer-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .footer-link{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#4338ca;font-size:11.5px;font-weight:800;text-decoration:none;transition:.15s}
+  .footer-link:hover{background:#eef0ff;border-color:#d7daf7;transform:translateY(-1px)}
+  .footer-link svg{width:15px;height:15px;flex:0 0 auto}
+
+  /* ---------- چیدمان ---------- */
+  main{max-width:1260px;margin:24px auto 70px;padding:0 20px;display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start}
+  @media (max-width:1000px){main{grid-template-columns:1fr}}
+  .col{display:flex;flex-direction:column;gap:20px;min-width:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 38px rgba(21,19,39,.055);overflow:hidden}
+  .card-h{display:flex;align-items:center;gap:10px;padding:15px 18px 12px;border-bottom:1px solid #f0f1f8}
+  .card-h h2{margin:0;font-size:13.5px;font-weight:800}
+  .card-h .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .card-h .grow{flex:1}
+  .card-b{padding:16px 18px}
+
+  /* ---------- آمار ---------- */
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 18px}
+  .stat{background:#f7f8fd;border:1px solid var(--line);border-radius:13px;padding:11px 12px;text-align:center}
+  .stat b{display:block;font-size:22px;color:var(--indigo);font-variant-numeric:tabular-nums;line-height:1.3}
+  .stat span{font-size:10.5px;color:var(--muted)}
+
+  /* ---------- کارت برنامه‌ها ---------- */
+  .apps{padding:8px 10px 12px;display:flex;flex-direction:column;gap:8px;min-height:60px}
+  .app{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;border:1px solid #eef0f8;background:#fcfcff;transition:.15s}
+  .app:hover{border-color:#dcdef2;background:#fafaff}
+  .app.patched{background:#f5fdf9;border-color:#d6f3e6}
+  .ava{
+    width:38px;height:38px;border-radius:11px;flex:0 0 auto;display:grid;place-items:center;
+    font-weight:800;font-size:15px;color:#fff;background:linear-gradient(145deg,#4f46e5,#7c3aed);
+    unicode-bidi:isolate;letter-spacing:.5px;
+  }
+  .app.patched .ava{background:linear-gradient(145deg,#059669,#10b981)}
+  .app-main{flex:1;min-width:0}
+  .app-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .app-title b{font-size:13px}
+  .ver{font-size:10.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .app-path{font-size:10.5px;color:#9aa0b4;direction:ltr;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+  .chip{font-size:10px;font-weight:800;padding:2.5px 8px;border-radius:99px}
+  .chip.on{background:var(--okbg);color:#065f46}
+  .chip.off{background:#eef0f6;color:#5b6478}
+  .chip.warn{background:var(--warnbg);color:var(--warn)}
+  .chip.custom{background:#ede9fe;color:#5b21b6}
+  .app-actions{display:flex;gap:6px;flex:0 0 auto}
+  .empty{text-align:center;padding:30px 18px;color:var(--muted);font-size:12.5px;line-height:2}
+  .empty .big{font-size:34px;display:block;margin-bottom:6px}
+  .add-row{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #f0f1f8;background:#fbfbfe}
+  .add-row input{
+    flex:1;border:1.5px solid #dcdef0;border-radius:11px;padding:9px 12px;font:inherit;font-size:12px;
+    direction:ltr;text-align:left;outline:none;background:#fff;min-width:0;
+  }
+  .add-row input:focus{border-color:var(--indigo);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+
+  /* ---------- تنظیمات ---------- */
+  .field{margin-bottom:14px}
+  .field:last-child{margin-bottom:0}
+  .field label.lbl{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+  .field .desc{font-size:10.5px;color:var(--muted);margin-top:4px;line-height:1.8}
+  .seg{display:flex;background:#eef0f9;border-radius:11px;padding:3px;gap:2px}
+  .seg button{border:0;background:transparent;flex:1;padding:8px 6px;border-radius:9px;cursor:pointer;font-size:12px;font-weight:700;color:#4b5568;transition:.15s}
+  .seg button.active{background:#fff;color:var(--indigo);box-shadow:0 2px 8px rgba(21,19,39,.12)}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed #eef0f8}
+  .switch-row:last-of-type{border-bottom:0}
+  .switch-row .t{font-size:12px;font-weight:600}
+  .switch-row .d{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .sw{position:relative;width:42px;height:24px;flex:0 0 auto;cursor:pointer}
+  .sw input{display:none}
+  .sw .tr{position:absolute;inset:0;border-radius:99px;background:#d5d8e6;transition:.18s}
+  .sw .tr::after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.22);transition:.18s}
+  .sw input:checked + .tr{background:var(--indigo)}
+  .sw input:checked + .tr::after{right:21px}
+  textarea.css{
+    width:100%;min-height:78px;border:1.5px solid #dcdef0;border-radius:11px;padding:9px 11px;
+    font-family:"Cascadia Code",Consolas,monospace;font-size:11.5px;direction:ltr;text-align:left;
+    line-height:1.8;background:#fbfbff;outline:none;resize:vertical;
+  }
+  textarea.css:focus{border-color:var(--indigo);background:#fff}
+
+  /* ---------- افزونه‌ی IDE ---------- */
+  .ide{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed #eef0f8}
+  .ide:last-child{border-bottom:0}
+  .ide .nm{font-size:12px;font-weight:600;flex:1}
+  .vsix{margin-top:10px;background:#f7f8fd;border:1px solid var(--line);border-radius:11px;padding:9px 11px;font-size:10.5px;color:#4b5568;line-height:1.9}
+  .vsix .mono{font-size:10px;direction:ltr;display:block;word-break:break-all;color:#7c8299}
+
+  /* ---------- تستر ---------- */
+  textarea.tester{
+    width:100%;min-height:74px;border:1.5px solid #dcdef0;border-radius:12px;padding:10px 12px;
+    font:inherit;font-size:12.5px;line-height:1.9;background:#fbfbff;outline:none;resize:vertical;
+  }
+  textarea.tester:focus{border-color:var(--indigo);background:#fff}
+  .verdict{display:flex;align-items:center;gap:9px;margin-top:9px;font-size:12px;flex-wrap:wrap}
+  .vchip{font-weight:800;padding:4px 12px;border-radius:99px;background:#eef0f6;color:#4b5568;font-size:11.5px}
+  .vchip.rtl{background:#dcfce7;color:#166534}
+  .vchip.ltr{background:#dbeafe;color:#1e40af}
+  .vchip.none{background:#f3f4f6;color:#6b7280}
+
+  /* ---------- گزارش ---------- */
+  .log{
+    background:#0d1220;color:#c9d4ea;padding:12px 14px;max-height:230px;overflow:auto;
+    font-family:"Cascadia Code",Consolas,monospace;font-size:11px;line-height:1.9;direction:ltr;text-align:left;
+  }
+  .log .ln{display:flex;gap:8px}
+  .log .t{color:#5b6b8c;flex:0 0 auto}
+  .log .m{word-break:break-word;unicode-bidi:isolate;text-align:start}
+  .log .ln.ok .m{color:#6ee7b7}
+  .log .ln.error .m{color:#fca5a5}
+  .log .ln.info .m{color:#c9d4ea}
+
+  /* ---------- اعلان ---------- */
+  .toasts{position:fixed;bottom:20px;inset-inline-start:50%;transform:translateX(50%);display:flex;flex-direction:column;gap:8px;z-index:60;align-items:center}
+  .toast{
+    background:#151327;color:#fff;padding:10px 18px;border-radius:12px;font-size:12.5px;
+    box-shadow:0 14px 34px rgba(0,0,0,.32);opacity:0;transform:translateY(14px);transition:.22s;
+    max-width:min(520px,90vw);text-align:center;
+  }
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.ok{background:#065f46}
+  .toast.err{background:#9f1239}
+  .banner{margin:0;padding:10px 18px;font-size:11.5px;line-height:1.9;background:#fffbeb;color:#92400e;border-bottom:1px solid #fde68a}
+  .banner code{background:#fef3c7;padding:1px 6px;border-radius:5px;font-size:10.5px;direction:ltr;display:inline-block}
+  .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .skel{height:56px;border-radius:14px;background:linear-gradient(90deg,#f0f1f8 25%,#f7f8fd 37%,#f0f1f8 63%);background-size:400% 100%;animation:sk 1.3s ease infinite}
+  @keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+  /* کلید تغییر زبان */
+  .lang{display:flex;background:#eef0f9;border-radius:11px;padding:3px;gap:2px}
+  .lang button{border:0;background:transparent;padding:6px 11px;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:800;color:#4b5568}
+  .lang button.active{background:#fff;color:var(--indigo);box-shadow:0 2px 8px rgba(21,19,39,.12)}
+</style>
+</head>
+<body>
+
+<!-- ===================== نوار بالا ===================== -->
+<header class="topbar">
+  <img class="logo" src="/brand/CyrusAsha_UniversalRTL.png" alt="CyrusAsha_UniversalRTL-1.0.0 logo">
+  <div class="brand">
+    <h1 data-i18n="app.title">CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل</h1>
+    <p data-i18n="app.subtitle">راست‌چین هوشمند برای همه‌ی محیط‌های Agent</p>
+  </div>
+  <span class="pill"><span class="dot"></span> <span data-i18n="app.local">سرور محلی</span></span>
+  <span class="pill" style="background:#f3f4f8;color:#4b5568" id="engine-ver">موتور …</span>
+  <div class="grow"></div>
+
+  <!-- دکمه‌های تغییر زبان (فارسی / English) -->
+  <div class="lang" role="group" aria-label="Language / زبان">
+    <button data-lang="fa" class="active">فارسی</button>
+    <button data-lang="en">English</button>
+  </div>
+
+  <button class="btn soft" id="btn-scan"><span>⟳</span> <span data-i18n="btn.scan">اسکن مجدد</span></button>
+  <button class="btn primary" id="btn-patch-all"><span>⚡</span> <span data-i18n="btn.patchAll">پچ همه</span></button>
+</header>
+
+<div class="banner" id="platform-banner" hidden></div>
+
+<main>
+  <!-- ===================== ستون راست/چپ: برنامه‌ها ===================== -->
+  <div class="col">
+    <section class="card">
+      <div class="card-h">
+        <div>
+          <h2 data-i18n="apps.title">اپ‌های Electron</h2>
+          <div class="sub" id="apps-sub" data-i18n="apps.loading">در حال جستجو…</div>
+        </div>
+        <div class="grow"></div>
+        <button class="btn ghost sm" id="btn-unpatch-all" data-i18n="apps.unpatchAll">حذف پچ همه</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="st-total">۰</b><span data-i18n="apps.statTotal">برنامه پیدا‌شده</span></div>
+        <div class="stat"><b id="st-patched">۰</b><span data-i18n="apps.statPatched">پچ‌شده</span></div>
+        <div class="stat"><b id="st-backups">۰</b><span data-i18n="apps.statBackups">بکاپ آماده</span></div>
+      </div>
+
+      <div class="apps" id="apps">
+        <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+      </div>
+
+      <div class="add-row">
+        <input id="add-path" data-i18n-ph="apps.addPlaceholder" placeholder="مسیر exe یا پوشه‌ی نصب، مثلاً  C:\Program Files\SomeAgent" spellcheck="false">
+        <button class="btn soft" id="btn-add" data-i18n="apps.addBtn">افزودن مسیر</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <div>
+          <h2 data-i18n="ide.title">افزونه‌ی IDE</h2>
+          <div class="sub" data-i18n="ide.sub">Antigravity · VS Code · Cursor · Windsurf · Kiro · VSCodium</div>
+        </div>
+        <div class="grow"></div>
+        <button class="btn ghost sm" id="btn-build-vsix" data-i18n="ide.build">ساخت VSIX</button>
+      </div>
+        <div class="card-b" id="ides"></div>
+      </section>
+
+      <!--
+        چت‌های وب داخل مرورگر اجرا می‌شوند، نه داخل IDE؛ بنابراین VSIX در آن‌ها کار نمی‌کند.
+        این کارت بسته‌ی واقعی WebExtension برای Chrome/Edge و Firefox را ارائه می‌دهد.
+        Web chats run in a browser, not inside an IDE, so the VSIX cannot modify them.
+        This card offers the native Chrome/Edge and Firefox browser-extension packages.
+      -->
+      <section class="card">
+        <div class="card-h">
+          <div>
+            <h2 data-i18n="web.title">چت‌های وب</h2>
+            <div class="sub" data-i18n="web.sub">ChatGPT · Claude · Gemini · DeepSeek · Qwen · Grok · Perplexity · Microsoft Copilot</div>
+          </div>
+        </div>
+        <div class="card-b">
+          <div class="desc" data-i18n="web.note">افزونه‌ی مرورگر CyrusAsha_UniversalRTL-1.0.0 برای Chrome/Edge و Firefox؛ با روشن/خاموش کلی و تنظیم جداگانه‌ی هر سایت.</div>
+          <div class="web-actions">
+            <a class="btn primary" href="install/browser/chrome.crx" data-i18n="web.chromeDownload">دانلود بسته‌ی Chrome (.crx)</a>
+            <a class="btn soft" href="install/browser/chrome.zip" data-i18n="web.chromeZipDownload">دانلود ZIP فروشگاه Chrome / Edge</a>
+            <a class="btn ghost" href="install/browser/firefox.xpi" data-i18n="web.firefoxDownload">دانلود افزونه‌ی Firefox</a>
+          </div>
+          <div class="desc web-install-help" data-i18n="web.installHelp">CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. XPI محلی Firefox موقت است و نصب دائمی به امضای Mozilla نیاز دارد.</div>
+          <div class="desc web-copilot-note">
+            <span data-i18n="web.copilotBefore">برای چت مایکروسافت در Edge از</span>
+            <a class="inline-link" href="https://copilot.microsoft.com/" target="_blank" rel="noopener noreferrer">Microsoft Copilot</a>
+            <span data-i18n="web.copilotAfter">استفاده کن؛ www.bing.com صفحه‌ی جست‌وجوست، نه چت.</span>
+          </div>
+          <details class="web-alt">
+            <summary data-i18n="web.alternatives">روش‌های جایگزین</summary>
+            <div class="web-actions">
+              <a class="btn ghost" id="btn-userscript" href="install/rtl-universal.user.js" target="_blank" rel="noopener" data-i18n="web.userscript">نصب یوزراسکریپت در Tampermonkey</a>
+              <button class="btn soft" id="btn-bookmarklet" data-i18n="web.copy">کپی بوکمارکلت</button>
+            </div>
+            <div class="desc" data-i18n="web.hint">بدون افزونه هم می‌شود: بوکمارکلت را کپی کن، آن را به آدرس یک بوکمارک بچسبان و در صفحه‌ی چت روی بوکمارک کلیک کن.</div>
+          </details>
+        </div>
+      </section>
+    </div>
+
+  <!-- ===================== ستون تنظیمات ===================== -->
+  <div class="col">
+    <section class="card">
+      <div class="card-h">
+        <div>
+          <h2 data-i18n="settings.title">تنظیمات</h2>
+          <div class="sub" data-i18n="settings.sub">روی پچ‌های بعدی اعمال می‌شود</div>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="field">
+          <label class="lbl" data-i18n="settings.mode">حالت جهت‌دهی</label>
+          <div class="seg" id="mode-seg">
+            <button data-mode="smart" class="active" data-i18n="mode.smart">هوشمند</button>
+            <button data-mode="rtl" data-i18n="mode.rtl">همه راست‌چین</button>
+            <button data-mode="ltr" data-i18n="mode.ltr">همه چپ‌چین</button>
+          </div>
+          <div class="desc" data-i18n="settings.modeDesc">در حالت هوشمند، جهت هر بلوک از محتوای خودش تشخیص داده می‌شود.</div>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="t" data-i18n="settings.inputs">کادرهای متن</div>
+            <div class="d" data-i18n="settings.inputsDesc">dir=auto برای Input و Textarea</div>
+          </div>
+          <label class="sw"><input type="checkbox" id="opt-inputs" checked><span class="tr"></span></label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <div class="t" data-i18n="settings.monaco">کادر چت Monaco</div>
+            <div class="d" data-i18n="settings.monacoDesc">فقط کامپوزر چت، نه ادیتور کد و ترمینال</div>
+          </div>
+          <label class="sw"><input type="checkbox" id="opt-monaco" checked><span class="tr"></span></label>
+        </div>
+
+        <div class="field" style="margin-top:14px">
+          <label class="lbl" data-i18n="settings.css">CSS سفارشی</label>
+          <textarea class="css" id="opt-css" placeholder="[data-rtl-dir='rtl']{font-family:Vazirmatn,sans-serif}"></textarea>
+          <div class="desc" data-i18n="settings.cssDesc">مثلاً فونت وزیرمتن یا اصلاح فاصله‌ها.</div>
+        </div>
+
+        <button class="btn primary" id="btn-save" style="width:100%;justify-content:center" data-i18n="settings.save">ذخیره تنظیمات</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <div>
+          <h2 data-i18n="tester.title">تست تشخیص جهت</h2>
+          <div class="sub" data-i18n="tester.sub">همان الگوریتم موتور، همین‌جا</div>
+        </div>
+      </div>
+      <div class="card-b">
+        <textarea class="tester" id="tester" dir="auto">این یک جمله‌ی فارسی است که با React و Node.js نوشته شده است.</textarea>
+        <div class="verdict">
+          <span class="vchip rtl" id="vchip">RTL</span>
+          <span id="vdetail" style="color:#6b7280"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <div>
+          <h2 data-i18n="log.title">گزارش زنده</h2>
+          <div class="sub" data-i18n="log.sub">عملیات پچ، نصب و خطاها</div>
+        </div>
+      </div>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+
+<!--
+  نوار پیوندها در انتهای کنترل‌پنل؛ فقط دو مقصد رسمی سازنده را نشان می‌دهد.
+  لینک‌ها در زبانه‌ی تازه باز می‌شوند و rel="noopener noreferrer" از دسترسی
+  صفحه‌ی مقصد به پنجره‌ی کنترل‌پنل جلوگیری می‌کند.
+  Footer links at the end of the panel. The rel attribute prevents the new
+  tab from gaining access to the Control Panel window.
+-->
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <span class="footer-label" data-i18n="footer.title">راه‌های ارتباطی با سازنده</span>
+    <nav class="footer-links" aria-label="GitHub و Telegram / GitHub and Telegram">
+      <a class="footer-link" href="https://github.com/hamzeh-asadi" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.043-1.61-4.043-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.745.083-.729.083-.729 1.205.084 1.838 1.237 1.838 1.237 1.07 1.833 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.466-1.334-5.466-5.931 0-1.311.469-2.381 1.235-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <span>GitHub</span>
+      </a>
+      <a class="footer-link" href="https://t.me/Asadi_hamzeh" target="_blank" rel="noopener noreferrer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.8 3.2 18.5 20c-.25 1.2-.95 1.5-1.95.95l-5.4-3.98-2.6 2.5c-.3.3-.55.55-1.1.55l.4-5.5L18 6.6c.4-.35-.1-.55-.65-.2L6.2 14.5 1 12.9c-1.15-.35-1.15-1.15.25-1.7L19.8 3.1c.95-.35 1.75.2 2 .1Z"/></svg>
+        <span>Telegram</span>
+      </a>
+    </nav>
+  </div>
+</footer>
+
+<div class="toasts" id="toasts"></div>
+
+<!-- موتور واقعی RTL (برای بخش «تست تشخیص جهت») توسط سرور در این آدرس سرو می‌شود -->
+<script src="/engine.js"></script>
+
+<script>
+/* ==========================================================================
+ * بخش جاوااسکریپت رابط کاربری
+ * --------------------------------------------------------------------------
+ * ساختار:
+ *   ۱. دیکشنری ترجمه (STR) — همه‌ی متن‌های فارسی و انگلیسی
+ *   ۲. ابزارهای کوچک (t، fa، esc، toast، api)
+ *   ۳. رندر صفحه (برنامه‌ها، IDEها، تنظیمات، بنر)
+ *   ۴. رویدادها (کلیک‌ها، فرم‌ها، زبان)
+ *   ۵. شروع برنامه
+ * ========================================================================== */
+(function () {
+  'use strict';
+
+  var $ = function (sel) { return document.querySelector(sel); };
+
+  /* ==========================================================================
+   * ۱) دیکشنری ترجمه
+   * --------------------------------------------------------------------------
+   * هر کلید یک متن در دو زبان دارد. برای افزودن متن جدید، فقط همین‌جا
+   * کلید را در هر دو زبان اضافه کن و در HTML از data-i18n استفاده کن.
+   * ========================================================================== */
+  var STR = {
+    fa: {
+      'app.title': 'CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل',
+      'app.subtitle': 'راست‌چین هوشمند برای همه‌ی محیط‌های Agent',
+      'app.local': 'سرور محلی',
+      'app.titleTag': 'CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل',
+      'footer.title': 'راه‌های ارتباطی با سازنده',
+      'btn.scan': 'اسکن مجدد',
+      'btn.patchAll': 'پچ همه',
+      'apps.title': 'اپ‌های Electron',
+      'apps.loading': 'در حال جستجو…',
+      'apps.unpatchAll': 'حذف پچ همه',
+      'apps.statTotal': 'برنامه پیدا‌شده',
+      'apps.statPatched': 'پچ‌شده',
+      'apps.statBackups': 'بکاپ آماده',
+      'apps.found': '{n} برنامه پیدا شد — روی «پچ» بزن تا راست‌چین شود',
+      'apps.notFound': 'برنامه‌ای پیدا نشد — مسیر را دستی اضافه کن',
+      'apps.emptyTitle': 'هیچ اپ Electron با resources/app.asar پیدا نشد.',
+      'apps.emptyDesc': 'اگر برنامه در مسیر غیرمعمولی نصب شده، مسیر exe یا پوشه‌ی نصبش را پایین اضافه کن.',
+      'apps.addPlaceholder': 'مسیر exe یا پوشه‌ی نصب، مثلاً  C:\\Program Files\\SomeAgent',
+      'apps.addBtn': 'افزودن مسیر',
+      'chip.patched': 'پچ‌شده',
+      'chip.unpatched': 'پچ‌نشده',
+      'chip.custom': 'دستی',
+      'chip.integrity': 'یکپارچگی ASAR',
+      'chip.integrityTitle': 'این برنامه بررسی یکپارچگی ASAR دارد؛ اگر بعد از پچ اجرا نشد، حذف پچ را بزن',
+      'btn.patch': 'پچ',
+      'btn.unpatch': 'حذف پچ',
+      'btn.folder': 'باز کردن پوشه',
+      'btn.forget': 'حذف از فهرست',
+      'ide.title': 'افزونه‌ی IDE',
+      'ide.sub': 'Antigravity · VS Code · Cursor · Windsurf · Kiro · VSCodium',
+      'ide.build': 'ساخت VSIX',
+      'ide.install': 'نصب افزونه',
+      'ide.noneTitle': 'CLI هیچ IDEای روی PATH پیدا نشد.',
+      'ide.noneDesc': 'داخل خود IDE از منوی Extensions → Install from VSIX نصب کن.',
+      'ide.vsixReady': '✅ فایل VSIX آماده است — {kb} KB',
+        'ide.vsixMissing': 'فایل VSIX هنوز ساخته نشده؛ دکمه‌ی «ساخت VSIX» را بزن.',
+        'web.title': 'چت‌های وب',
+        'web.sub': 'ChatGPT · Claude · Gemini · DeepSeek · Qwen · Grok · Perplexity · Microsoft Copilot',
+        'web.note': 'افزونه‌ی مرورگر CyrusAsha_UniversalRTL-1.0.0 برای Chrome/Edge و Firefox آماده است؛ پنجره‌ی افزونه تنظیمات کلی و جداگانه‌ی هر سایت را دارد.',
+        'web.chromeDownload': 'دانلود بسته‌ی Chrome (.crx)',
+        'web.chromeZipDownload': 'دانلود ZIP فروشگاه Chrome / Edge',
+        'web.firefoxDownload': 'دانلود افزونه‌ی Firefox',
+        'web.installHelp': 'CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. XPI محلی Firefox موقت است و نصب دائمی به امضای Mozilla نیاز دارد.',
+        'web.copilotBefore': 'برای چت مایکروسافت در Edge از',
+        'web.copilotAfter': 'استفاده کن؛ www.bing.com صفحه‌ی جست‌وجوست، نه چت. افزونه عمداً جست‌وجوی Bing را تغییر نمی‌دهد.',
+        'web.alternatives': 'روش‌های جایگزین (Tampermonkey / بوکمارکلت)',
+        'web.userscript': 'استفاده از Tampermonkey',
+        'web.copy': 'کپی بوکمارکلت',
+        'web.hint': 'بدون افزونه هم می‌شود: بوکمارکلت را کپی کن، آن را به آدرس یک بوکمارک بچسبان و در صفحه‌ی چت روی بوکمارک کلیک کن.',
+        'web.copied': 'بوکمارکلت کپی شد — در فیلد آدرس بوکمارک بچسبان.',
+        'web.copyFailed': 'کپی ناموفق بود؛ فایل بوکمارکلت را از پوشه‌ی release باز کن.',
+      'settings.title': 'تنظیمات',
+      'settings.sub': 'روی پچ‌های بعدی اعمال می‌شود',
+      'settings.mode': 'حالت جهت‌دهی',
+      'settings.modeDesc': 'در حالت هوشمند، جهت هر بلوک از محتوای خودش تشخیص داده می‌شود.',
+      'mode.smart': 'هوشمند',
+      'mode.rtl': 'همه راست‌چین',
+      'mode.ltr': 'همه چپ‌چین',
+      'settings.inputs': 'کادرهای متن',
+      'settings.inputsDesc': 'dir=auto برای Input و Textarea',
+      'settings.monaco': 'کادر چت Monaco',
+      'settings.monacoDesc': 'فقط کامپوزر چت، نه ادیتور کد و ترمینال',
+      'settings.css': 'CSS سفارشی',
+      'settings.cssDesc': 'مثلاً فونت وزیرمتن یا اصلاح فاصله‌ها.',
+      'settings.save': 'ذخیره تنظیمات',
+      'tester.title': 'تست تشخیص جهت',
+      'tester.sub': 'همان الگوریتم موتور، همین‌جا',
+      'tester.pct': '{pct} از حروف، راست‌به‌چپ است',
+      'tester.none': 'حرفی برای سنجش نیست',
+      'tester.sampleFa': 'این یک جمله‌ی فارسی است که با React و Node.js نوشته شده است.',
+      'tester.sampleEn': 'This English sentence has one Persian word: سلام.',
+      'log.title': 'گزارش زنده',
+      'log.sub': 'عملیات پچ، نصب و خطاها',
+      'verdict.rtl': 'RTL — راست‌چین',
+      'verdict.ltr': 'LTR — چپ‌چین',
+      'verdict.none': 'خنثی',
+      'engine.version': 'موتور {v}',
+      'banner.win32': 'ویندوز: قبل از پچ، برنامه‌ی مقصد را کاملاً ببند. اگر برنامه در Program Files نصب شده و خطای دسترسی گرفتی، پچ را با دسترسی Administrator اجرا کن.',
+      'banner.darwin': 'macOS: اگر برنامه در /Applications است و خطای دسترسی گرفتی، پوشه را در Finder با Get Info قابل نوشتن کن.',
+      'banner.linux': 'لینوکس: پچ داخل پوشه‌ی نصب انجام می‌شود؛ ممکن است به sudo نیاز باشد.',
+      'toast.connected': 'اتصال به سرور برقرار نشد',
+      'toast.patched': 'پچ انجام شد — برنامه را دوباره باز کن',
+      'toast.patchFailed': 'پچ ناموفق: {error}',
+      'toast.unpatched': 'پچ حذف شد — نسخه‌ی اصلی برگشت',
+      'toast.unpatchFailed': 'حذف ناموفق: {error}',
+      'toast.forgotten': 'از فهرست حذف شد',
+      'toast.installed': 'افزونه نصب شد — IDE را Reload کن',
+      'toast.installFailed': 'نصب ناموفق: {error}',
+      'toast.allPatched': 'همه‌ی برنامه‌ها از قبل پچ شده‌اند',
+      'toast.patchAllOk': 'همه پچ شدند ({n})',
+      'toast.patchAllPartial': '{n} موفق، بقیه ناموفق',
+      'toast.unpatchAllOk': 'همه بازگردانی شدند',
+      'toast.unpatchAllPartial': 'برخی بازگردانی نشدند',
+      'toast.confirmUnpatchAll': 'پچ همه‌ی برنامه‌ها حذف و نسخه‌های اصلی بازگردانی شوند؟',
+      'toast.scanDone': 'اسکن کامل شد',
+      'toast.pathAdded': 'مسیر اضافه شد',
+      'toast.pathInvalid': 'مسیر را وارد کن',
+      'toast.saved': 'تنظیمات ذخیره شد — روی پچ‌های بعدی اعمال می‌شود',
+      'toast.saveFailed': 'ذخیره ناموفق',
+      'toast.vsixReady': 'VSIX آماده شد',
+      'toast.error': 'خطا: {error}',
+      'confirm.yes': 'بله',
+      /* ترجمه‌ی پیام‌های گزارش سرور (کدها) */
+      'log.server_started': 'مرکز کنترل روی پورت {port} اجرا شد',
+      'log.platform_info': 'پلتفرم: {platform} — موتور نسخه {version}',
+      'log.scan_started': 'اسکن مجدد شروع شد…',
+      'log.scan_done': 'اسکن مجدد: {count} برنامه پیدا شد',
+      'log.patching': 'در حال پچ «{name}»…',
+      'log.patched': '✅ «{name}» پچ شد ({scripts})',
+      'log.patch_failed': '❌ «{name}»: {error}',
+      'log.unpatching': 'در حال حذف پچ «{name}»…',
+      'log.unpatched': '✅ پچ «{name}» حذف شد ({mode})',
+      'log.unpatch_failed': '❌ «{name}»: {error}',
+      'log.path_added': 'مسیر اضافه شد: {path}',
+      'log.settings_saved': 'تنظیمات ذخیره شد (حالت: {mode})',
+      'log.installing': 'در حال نصب افزونه در {cli}…',
+      'log.installed': 'افزونه در {label} نصب شد',
+      'log.install_failed': 'نصب افزونه ناموفق ({label}): {error}',
+      'log.vsix_ready': 'VSIX آماده شد: {name}',
+      'log.vsix_failed': 'ساخت VSIX ناموفق: {error}',
+      'log.save_failed': 'خطا در ذخیره تنظیمات: {error}',
+      'log.scan_default_error': 'خطا در اسکن پیش‌فرض: {error}',
+      'log.list_error': 'خطا در فهرست اپ‌ها: {error}',
+      'log.server_error': 'خطای سرور: {error}',
+      'log.port_busy': 'پورت {port} اشغال است؛ تلاش بعدی: {next}'
+    },
+    en: {
+      'app.title': 'CyrusAsha_UniversalRTL-1.0.0 — Control Panel',
+      'app.subtitle': 'Smart right-to-left for every AI agent environment',
+      'app.local': 'Local server',
+      'app.titleTag': 'CyrusAsha_UniversalRTL-1.0.0 — Control Panel',
+      'footer.title': 'Connect with the developer',
+      'btn.scan': 'Rescan',
+      'btn.patchAll': 'Patch all',
+      'apps.title': 'Electron apps',
+      'apps.loading': 'Searching…',
+      'apps.unpatchAll': 'Unpatch all',
+      'apps.statTotal': 'Apps found',
+      'apps.statPatched': 'Patched',
+      'apps.statBackups': 'Backups ready',
+      'apps.found': '{n} apps found — press “Patch” to make them RTL',
+      'apps.notFound': 'No apps found — add a path manually',
+      'apps.emptyTitle': 'No Electron app with resources/app.asar was found.',
+      'apps.emptyDesc': 'If your app is installed in an unusual place, add its exe or install folder below.',
+      'apps.addPlaceholder': 'Path to exe or install folder, e.g.  C:\\Program Files\\SomeAgent',
+      'apps.addBtn': 'Add path',
+      'chip.patched': 'Patched',
+      'chip.unpatched': 'Not patched',
+      'chip.custom': 'Manual',
+      'chip.integrity': 'ASAR integrity',
+      'chip.integrityTitle': 'This app verifies ASAR integrity; if it fails to start after patching, use Unpatch',
+      'btn.patch': 'Patch',
+      'btn.unpatch': 'Unpatch',
+      'btn.folder': 'Open folder',
+      'btn.forget': 'Remove from list',
+      'ide.title': 'IDE extension',
+      'ide.sub': 'Antigravity · VS Code · Cursor · Windsurf · Kiro · VSCodium',
+      'ide.build': 'Build VSIX',
+      'ide.install': 'Install extension',
+      'ide.noneTitle': 'No IDE CLI was found on PATH.',
+      'ide.noneDesc': 'Inside the IDE: Extensions → Install from VSIX.',
+      'ide.vsixReady': '✅ VSIX file is ready — {kb} KB',
+        'ide.vsixMissing': 'VSIX is not built yet; press “Build VSIX”.',
+        'web.title': 'Web chats',
+        'web.sub': 'ChatGPT · Claude · Gemini · DeepSeek · Qwen · Grok · Perplexity · Microsoft Copilot',
+        'web.note': 'CyrusAsha_UniversalRTL-1.0.0 browser extensions are ready for Chrome/Edge and Firefox. Use the popup to control all sites or select sites individually.',
+        'web.chromeDownload': 'Download packed Chrome extension (.crx)',
+        'web.chromeZipDownload': 'Download Chrome Web Store / Edge ZIP',
+        'web.firefoxDownload': 'Download Firefox extension',
+        'web.installHelp': 'The CRX is packed; Chrome policies may block local sideloading. For normal Chrome distribution, submit the ZIP to the Chrome Web Store. The ZIP is for Edge Add-ons. A local Firefox XPI is temporary; permanent installation requires Mozilla signing.',
+        'web.copilotBefore': 'For Microsoft chat in Edge, open',
+        'web.copilotAfter': '— www.bing.com is the search homepage, not chat. The extension intentionally leaves normal Bing search unchanged.',
+        'web.alternatives': 'Alternative methods (Tampermonkey / bookmarklet)',
+        'web.userscript': 'Use with Tampermonkey',
+        'web.copy': 'Copy bookmarklet',
+        'web.hint': 'You can also skip installing an extension: copy the bookmarklet, paste it as a bookmark URL, then click that bookmark on a chat page.',
+        'web.copied': 'Bookmarklet copied — paste it into a bookmark URL field.',
+        'web.copyFailed': 'Copy failed; open the bookmarklet file in the release folder.',
+      'settings.title': 'Settings',
+      'settings.sub': 'Applied to future patches',
+      'settings.mode': 'Direction mode',
+      'settings.modeDesc': 'In smart mode the direction of every block is detected from its own content.',
+      'mode.smart': 'Smart',
+      'mode.rtl': 'All RTL',
+      'mode.ltr': 'All LTR',
+      'settings.inputs': 'Text inputs',
+      'settings.inputsDesc': 'dir=auto for input and textarea',
+      'settings.monaco': 'Monaco chat composer',
+      'settings.monacoDesc': 'Chat composer only — never the code editor or terminal',
+      'settings.css': 'Custom CSS',
+      'settings.cssDesc': 'e.g. a Persian font such as Vazirmatn.',
+      'settings.save': 'Save settings',
+      'tester.title': 'Direction tester',
+      'tester.sub': 'The real engine algorithm, right here',
+      'tester.pct': '{pct} of the letters are right-to-left',
+      'tester.none': 'No letters to measure',
+      'tester.sampleFa': 'این یک جمله‌ی فارسی است که با React و Node.js نوشته شده است.',
+      'tester.sampleEn': 'This English sentence has one Persian word: سلام.',
+      'log.title': 'Live log',
+      'log.sub': 'Patch operations, installs and errors',
+      'verdict.rtl': 'RTL — right to left',
+      'verdict.ltr': 'LTR — left to right',
+      'verdict.none': 'Neutral',
+      'engine.version': 'engine {v}',
+      'banner.win32': 'Windows: close the target app completely before patching. If it lives in Program Files and you get a permission error, run the patcher as Administrator.',
+      'banner.darwin': 'macOS: if the app is in /Applications and you get a permission error, make the folder writable via Get Info in Finder.',
+      'banner.linux': 'Linux: patching writes inside the install folder; you may need sudo.',
+      'toast.connected': 'Could not reach the local server',
+      'toast.patched': 'Patched — reopen the app',
+      'toast.patchFailed': 'Patch failed: {error}',
+      'toast.unpatched': 'Patch removed — original restored',
+      'toast.unpatchFailed': 'Unpatch failed: {error}',
+      'toast.forgotten': 'Removed from the list',
+      'toast.installed': 'Extension installed — reload the IDE',
+      'toast.installFailed': 'Install failed: {error}',
+      'toast.allPatched': 'All apps are already patched',
+      'toast.patchAllOk': 'All patched ({n})',
+      'toast.patchAllPartial': '{n} succeeded, the rest failed',
+      'toast.unpatchAllOk': 'All restored',
+      'toast.unpatchAllPartial': 'Some apps could not be restored',
+      'toast.confirmUnpatchAll': 'Remove the patch from every app and restore the originals?',
+      'toast.scanDone': 'Scan finished',
+      'toast.pathAdded': 'Path added',
+      'toast.pathInvalid': 'Please enter a path',
+      'toast.saved': 'Settings saved — applied to future patches',
+      'toast.saveFailed': 'Could not save',
+      'toast.vsixReady': 'VSIX built',
+      'toast.error': 'Error: {error}',
+      'confirm.yes': 'Yes',
+      'log.server_started': 'Control Panel started on port {port}',
+      'log.platform_info': 'Platform: {platform} — engine version {version}',
+      'log.scan_started': 'Rescan started…',
+      'log.scan_done': 'Rescan: {count} apps found',
+      'log.patching': 'Patching “{name}”…',
+      'log.patched': '✅ Patched “{name}” ({scripts})',
+      'log.patch_failed': '❌ “{name}”: {error}',
+      'log.unpatching': 'Unpatching “{name}”…',
+      'log.unpatched': '✅ Unpatched “{name}” ({mode})',
+      'log.unpatch_failed': '❌ “{name}”: {error}',
+      'log.path_added': 'Path added: {path}',
+      'log.settings_saved': 'Settings saved (mode: {mode})',
+      'log.installing': 'Installing the extension into {cli}…',
+      'log.installed': 'Extension installed in {label}',
+      'log.install_failed': 'Extension install failed ({label}): {error}',
+      'log.vsix_ready': 'VSIX ready: {name}',
+      'log.vsix_failed': 'VSIX build failed: {error}',
+      'log.save_failed': 'Could not save settings: {error}',
+      'log.scan_default_error': 'Default scan error: {error}',
+      'log.list_error': 'App list error: {error}',
+      'log.server_error': 'Server error: {error}',
+      'log.port_busy': 'Port {port} is busy; trying {next}'
+    }
+  };
+
+  var LANG_KEY = 'rtlUniversal.lang';
+  var lang = 'fa';
+  try { lang = localStorage.getItem(LANG_KEY) || 'fa'; } catch (e) { /* حالت خصوصی مرورگر */ }
+  if (!STR[lang]) lang = 'fa';
+
+  var state = null;      // آخرین وضعیت دریافتی از سرور
+  var busy = false;      // آیا عملیاتی در جریان است؟
+  var lastLogId = 0;     // برای دریافت فقط پیام‌های تازه
+
+  /* ==========================================================================
+   * ۲) ابزارهای کوچک
+   * ========================================================================== */
+
+  /** t('کلید', {پارامتر}) → متن ترجمه‌شده با جایگذاری {name}
+   *  اگر کلید نبود، خود کلید برگردانده می‌شود (تا هیچ‌جا خالی نماند). */
+  function t(key, params) {
+    var dict = STR[lang] || STR.fa;
+    var text = dict[key];
+    if (text === undefined) text = (STR.fa[key] !== undefined ? STR.fa[key] : key);
+    if (params) {
+      text = text.replace(/\{(\w+)\}/g, function (m, name) {
+        return params[name] !== undefined ? params[name] : m;
+      });
+    }
+    return text;
+  }
+
+  /** اعداد فارسی (فقط در حالت فارسی) */
+  function num(n) {
+    var s = String(n);
+    return lang === 'fa' ? s.replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }) : s;
+  }
+
+  /** درصد خوانا: ۷۵.۶٪ در فارسی، 75.6% در انگلیسی */
+  function pct(ratio) {
+    var v = Math.round(ratio * 1000) / 10;
+    var txt = (v % 1 === 0 ? String(v) : v.toFixed(1));
+    return (lang === 'fa' ? num(txt) : txt) + (lang === 'fa' ? '٪' : '%');
+  }
+
+  /** فرار دادن HTML تا متن کاربر به تگ تبدیل نشود (جلوگیری از XSS) */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /** نمایش یک اعلان کوتاه پایین صفحه */
+  function toast(msg, type) {
+    var el = document.createElement('div');
+    el.className = 'toast ' + (type || '');
+    el.textContent = msg;
+    $('#toasts').appendChild(el);
+    requestAnimationFrame(function () { el.classList.add('show'); });
+    setTimeout(function () {
+      el.classList.remove('show');
+      setTimeout(function () { el.remove(); }, 300);
+    }, 3400);
+  }
+
+  /** ارتباط با سرور: GET اگر body ندهیم، وگرنه POST با JSON */
+  async function api(path, body) {
+    var opts = body === undefined ? {} : {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    };
+    var res = await fetch(path, opts);
+    var data = null;
+    try { data = await res.json(); } catch (e) { data = { ok: false, error: 'Invalid server response' }; }
+    if (!res.ok && !data.error) data.error = 'HTTP ' + res.status;
+    return data;
+  }
+
+  /** پیام خطای مناسب زبان فعلی (سرور هر دو نسخه را می‌فرستد) */
+  function errOf(obj) {
+    if (!obj) return '?';
+    return lang === 'en' ? (obj.errorEn || obj.error) : (obj.error || obj.errorEn);
+  }
+
+  /** قفل کردن دکمه‌ها هنگام عملیات طولانی */
+  function setBusy(on, label) {
+    busy = on;
+    document.querySelectorAll('button').forEach(function (b) { b.disabled = on; });
+    if (on && label) {
+      ['btn-patch-all', 'btn-save'].forEach(function (id) {
+        var b = document.getElementById(id);
+        if (b) {
+          if (b.dataset.orig === undefined) b.dataset.orig = b.innerHTML;
+          b.innerHTML = '<span class="spin"></span> ' + esc(label);
+        }
+      });
+    } else {
+      document.querySelectorAll('.btn').forEach(function (b) {
+        if (b.dataset.orig !== undefined) { b.innerHTML = b.dataset.orig; delete b.dataset.orig; }
+      });
+    }
+  }
+
+  /* ==========================================================================
+   * ۳) رندر بخش‌ها
+   * ========================================================================== */
+
+  /** کارت‌های برنامه */
+  function renderApps() {
+    var apps = (state && state.apps) || [];
+    var box = $('#apps');
+
+    $('#st-total').textContent = num(apps.length);
+    $('#st-patched').textContent = num(apps.filter(function (a) { return a.patched; }).length);
+    $('#st-backups').textContent = num(apps.filter(function (a) { return a.backup; }).length);
+    $('#apps-sub').textContent = apps.length ? t('apps.found', { n: num(apps.length) }) : t('apps.notFound');
+
+    if (!apps.length) {
+      box.innerHTML = '<div class="empty"><span class="big">🔍</span>' +
+        esc(t('apps.emptyTitle')) + '<br>' + esc(t('apps.emptyDesc')) + '</div>';
+      return;
+    }
+
+    box.innerHTML = apps.map(function (app) {
+      var letter = (app.name || '?').trim().charAt(0).toUpperCase();
+      var chips = app.patched ? '<span class="chip on">' + esc(t('chip.patched')) + '</span>'
+                               : '<span class="chip off">' + esc(t('chip.unpatched')) + '</span>';
+      if (app.custom) chips += ' <span class="chip custom">' + esc(t('chip.custom')) + '</span>';
+      if (app.hasIntegrity) {
+        chips += ' <span class="chip warn" title="' + esc(t('chip.integrityTitle')) + '">' +
+                 esc(t('chip.integrity')) + '</span>';
+      }
+
+      return '<div class="app ' + (app.patched ? 'patched' : '') + '">' +
+        '<div class="ava">' + esc(letter) + '</div>' +
+        '<div class="app-main">' +
+          '<div class="app-title"><b>' + esc(app.name) + '</b>' +
+            (app.version ? '<span class="ver">v' + esc(app.version) + '</span>' : '') + chips +
+          '</div>' +
+          '<div class="app-path" title="' + esc(app.asar) + '">' + esc(app.asar) + '</div>' +
+        '</div>' +
+        '<div class="app-actions">' +
+          (app.patched
+            ? '<button class="btn danger sm" data-act="unpatch" data-root="' + esc(app.appRoot) + '">' + esc(t('btn.unpatch')) + '</button>'
+            : '<button class="btn primary sm" data-act="patch" data-root="' + esc(app.appRoot) + '">' + esc(t('btn.patch')) + '</button>') +
+          '<button class="btn ghost sm" data-act="folder" data-path="' + esc(app.appRoot) + '" title="' + esc(t('btn.folder')) + '">📁</button>' +
+          (app.custom ? '<button class="btn ghost sm" data-act="forget" data-root="' + esc(app.appRoot) + '" title="' + esc(t('btn.forget')) + '">×</button>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  /** بخش IDE و VSIX */
+  function renderIdes() {
+    var ides = (state && state.ides) || [];
+    var found = ides.filter(function (i) { return i.found; });
+    var html = '';
+
+    if (!found.length) {
+      html += '<div class="empty" style="padding:16px 6px 10px">' +
+        esc(t('ide.noneTitle')) + '<br>' + esc(t('ide.noneDesc')) + '</div>';
+    } else {
+      html += found.map(function (ide) {
+        return '<div class="ide"><span class="nm">' + esc(ide.label) + '</span>' +
+          '<span class="st mono" style="direction:ltr;font-size:9.5px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(ide.path) + '</span>' +
+          '<button class="btn soft sm" data-act="install" data-cli="' + esc(ide.cmd) + '">' + esc(t('ide.install')) + '</button></div>';
+      }).join('');
+    }
+
+    if (state && state.vsix) {
+      html += '<div class="vsix">' +
+        (state.vsix.exists
+          ? esc(t('ide.vsixReady', { kb: num(Math.round(state.vsix.size / 1024)) }))
+          : esc(t('ide.vsixMissing'))) +
+        '<span class="mono">' + esc(state.vsix.path) + '</span></div>';
+    }
+    $('#ides').innerHTML = html;
+  }
+
+  /** تنظیمات (مقدارهای فعلی) */
+  function renderSettings() {
+    if (!state) return;
+    var c = state.config || {};
+    document.querySelectorAll('#mode-seg button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.mode === c.mode);
+    });
+    $('#opt-inputs').checked = !!c.inputs;
+    $('#opt-monaco').checked = !!c.monacoChatInput;
+    if (document.activeElement !== $('#opt-css')) $('#opt-css').value = c.extraCSS || '';
+    $('#engine-ver').textContent = t('engine.version', { v: state.engineVersion || '?' });
+  }
+
+  /** بنر راهنمای مخصوص هر سیستم‌عامل */
+  function renderBanner() {
+    var banner = $('#platform-banner');
+    var key = state && state.platform ? 'banner.' + state.platform : null;
+    if (key && STR[lang][key]) {
+      banner.hidden = false;
+      banner.textContent = t(key);
+    } else {
+      banner.hidden = true;
+    }
+  }
+
+  /** ترجمه‌ی متن‌های ثابت HTML بر اساس data-i18n */
+  function translateStatic() {
+    document.querySelectorAll('[data-i18n]').forEach(function (el) {
+      el.textContent = t(el.getAttribute('data-i18n'));
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(function (el) {
+      el.setAttribute('title', t(el.getAttribute('data-i18n-title')));
+    });
+    document.title = t('app.titleTag');
+  }
+
+  /** اعمال زبان: جهت صفحه، فونت و همه‌ی متن‌ها */
+  function applyLang(next) {
+    lang = STR[next] ? next : 'fa';
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* ignore */ }
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+    document.querySelectorAll('.lang button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.lang === lang);
+    });
+    translateStatic();
+    if (state) { renderApps(); renderIdes(); renderSettings(); renderBanner(); }
+    updateTester();
+    renderLog(); // گزارش‌های قبلی با زبان جدید دوباره نوشته می‌شوند
+  }
+
+  /* ==========================================================================
+   * ۴) وضعیت و گزارش
+   * ========================================================================== */
+
+  /** گرفتن وضعیت کامل از سرور و رندر مجدد */
+  async function refresh() {
+    var data = await api('/api/state');
+    if (!data || data.error) { toast(t('toast.connected'), 'err'); return; }
+    state = data;
+    renderApps(); renderIdes(); renderSettings(); renderBanner();
+  }
+
+  var logLines = []; // همه‌ی خطوط گزارش (برای رندر مجدد هنگام تغییر زبان)
+
+  /** رندر گزارش از روی آرایه‌ی logLines */
+  function renderLog() {
+    var box = $('#log');
+    box.innerHTML = logLines.map(function (l) {
+      var time = new Date(l.at).toLocaleTimeString(lang === 'fa' ? 'fa-IR' : 'en-US',
+        { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      var text = t('log.' + l.code, l.params);
+      return '<div class="ln ' + esc(l.level || 'info') + '">' +
+        '<span class="t">' + esc(time) + '</span>' +
+        '<span class="m" dir="auto">' + esc(text) + '</span></div>';
+    }).join('');
+    box.scrollTop = box.scrollHeight;
+  }
+
+  /** هر ۱.۸ ثانیه فقط پیام‌های تازه را می‌گیریم */
+  async function pollLog() {
+    try {
+      var res = await fetch('/api/log?since=' + lastLogId);
+      var data = await res.json();
+      if (data.logs && data.logs.length) {
+        data.logs.forEach(function (l) { logLines.push(l); lastLogId = l.id; });
+        if (logLines.length > 250) logLines = logLines.slice(-250);
+        renderLog();
+      }
+    } catch (e) { /* سرور موقتاً در دسترس نیست */ }
+  }
+
+  /* ==========================================================================
+   * ۵) عملیات (پچ، حذف، نصب…)
+   * ========================================================================== */
+  async function doPatch(appRoot) {
+    setBusy(true, lang === 'fa' ? 'در حال پچ…' : 'Patching…');
+    var r = await api('/api/patch', { appRoot: appRoot, mode: state.config.mode, css: state.config.extraCSS });
+    setBusy(false);
+    if (r.ok) toast(t('toast.patched'), 'ok');
+    else toast(t('toast.patchFailed', { error: errOf((r.results && r.results[0]) || r) }), 'err');
+    await refresh(); await pollLog();
+  }
+
+  async function doUnpatch(appRoot) {
+    setBusy(true, lang === 'fa' ? 'در حال حذف…' : 'Unpatching…');
+    var r = await api('/api/unpatch', { appRoot: appRoot });
+    setBusy(false);
+    if (r.ok) toast(t('toast.unpatched'), 'ok');
+    else toast(t('toast.unpatchFailed', { error: errOf(r) }), 'err');
+    await refresh(); await pollLog();
+  }
+
+  /** همه‌ی کلیک‌های دکمه‌های پویا با data-act مدیریت می‌شوند */
+  document.addEventListener('click', async function (e) {
+    var btn = e.target.closest('[data-act]');
+    if (!btn || busy) return;
+    var act = btn.dataset.act;
+    if (act === 'patch') return doPatch(btn.dataset.root);
+    if (act === 'unpatch') return doUnpatch(btn.dataset.root);
+    if (act === 'folder') { await api('/api/open-folder', { path: btn.dataset.path }); return; }
+    if (act === 'forget') {
+      await api('/api/remove-path', { appRoot: btn.dataset.root });
+      toast(t('toast.forgotten'));
+      await refresh();
+      return;
+    }
+    if (act === 'install') {
+      setBusy(true, lang === 'fa' ? 'در حال نصب…' : 'Installing…');
+      var r = await api('/api/install-extension', { cli: btn.dataset.cli });
+      setBusy(false);
+      if (r.ok) toast(t('toast.installed'), 'ok');
+      else toast(t('toast.installFailed', { error: errOf(r) }), 'err');
+      await pollLog();
+    }
+  });
+
+  $('#btn-patch-all').addEventListener('click', async function () {
+    var pending = (state.apps || []).filter(function (a) { return !a.patched; });
+    if (!pending.length) { toast(t('toast.allPatched'), 'ok'); return; }
+    setBusy(true, lang === 'fa' ? 'در حال پچ همه…' : 'Patching all…');
+    var r = await api('/api/patch-all', { mode: state.config.mode, css: state.config.extraCSS });
+    setBusy(false);
+    var okCount = (r.results || []).filter(function (x) { return x.ok; }).length;
+    toast(r.ok ? t('toast.patchAllOk', { n: num(okCount) }) : t('toast.patchAllPartial', { n: num(okCount) }),
+      r.ok ? 'ok' : 'err');
+    await refresh(); await pollLog();
+  });
+
+  $('#btn-unpatch-all').addEventListener('click', async function () {
+    if (!confirm(t('toast.confirmUnpatchAll'))) return;
+    setBusy(true, lang === 'fa' ? 'در حال بازگردانی…' : 'Restoring…');
+    var r = await api('/api/unpatch', { all: true });
+    setBusy(false);
+    toast(r.ok ? t('toast.unpatchAllOk') : t('toast.unpatchAllPartial'), r.ok ? 'ok' : 'err');
+    await refresh(); await pollLog();
+  });
+
+  $('#btn-scan').addEventListener('click', async function () {
+    setBusy(true, lang === 'fa' ? 'اسکن…' : 'Scanning…');
+    await api('/api/scan', {});
+    setBusy(false);
+    await refresh(); await pollLog();
+    toast(t('toast.scanDone'));
+  });
+
+  $('#btn-add').addEventListener('click', async function () {
+    var p = $('#add-path').value.trim();
+    if (!p) return toast(t('toast.pathInvalid'), 'err');
+    var r = await api('/api/add-path', { path: p });
+    if (r.ok) { $('#add-path').value = ''; toast(t('toast.pathAdded'), 'ok'); await refresh(); await pollLog(); }
+    else toast(errOf(r), 'err');
+  });
+  $('#add-path').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('#btn-add').click();
+  });
+
+  $('#btn-build-vsix').addEventListener('click', async function () {
+    setBusy(true, lang === 'fa' ? 'ساخت…' : 'Building…');
+    var r = await api('/api/build-vsix', {});
+    setBusy(false);
+    toast(r.ok ? t('toast.vsixReady') : t('toast.error', { error: errOf(r) }), r.ok ? 'ok' : 'err');
+    await refresh(); await pollLog();
+  });
+
+    /* بوکمارکلت: متن ~۲۶ کیلوبایتی را از سرور می‌گیریم و در کلیپ‌بورد می‌گذاریم.
+     * اگر مرورگر اجازه‌ی کلیپ‌بورد نداد (مثلاً روی آدرس غیر-secure)، از روش قدیمی
+     * textarea + execCommand استفاده می‌کنیم که تقریباً همه‌جا کار می‌کند. */
+    $('#btn-bookmarklet').addEventListener('click', async function () {
+      try {
+        var res = await fetch('install/bookmarklet.txt', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        var text = (await res.text()).trim();
+        var ok = false;
+        try {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        } catch (e) {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        toast(ok ? t('web.copied') : t('web.copyFailed'), ok ? 'ok' : 'err');
+      } catch (e) {
+        toast(t('web.copyFailed'), 'err');
+      }
+    });
+
+    $('#btn-save').addEventListener('click', async function () {
+    setBusy(true, lang === 'fa' ? 'ذخیره…' : 'Saving…');
+    var r = await api('/api/settings', {
+      mode: (document.querySelector('#mode-seg button.active') || {}).dataset.mode || 'smart',
+      inputs: $('#opt-inputs').checked,
+      monacoChatInput: $('#opt-monaco').checked,
+      extraCSS: $('#opt-css').value
+    });
+    setBusy(false);
+    if (r.ok) { state.config = r.config; toast(t('toast.saved'), 'ok'); }
+    else toast(t('toast.saveFailed'), 'err');
+    await pollLog();
+  });
+
+  document.querySelectorAll('#mode-seg button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('#mode-seg button').forEach(function (x) { x.classList.remove('active'); });
+      b.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.lang button').forEach(function (b) {
+    b.addEventListener('click', function () { applyLang(b.dataset.lang); });
+  });
+
+  /* ==========================================================================
+   * ۶) تستر تشخیص جهت
+   * ========================================================================== */
+  var tester = $('#tester');
+
+  function updateTester() {
+    var value = tester.value;
+    var dir = (window.RTLUniversal && typeof window.RTLUniversal.decide === 'function')
+      ? window.RTLUniversal.decide(value) : null;
+
+    var chip = $('#vchip');
+    chip.className = 'vchip ' + (dir || 'none');
+    chip.textContent = dir === 'rtl' ? t('verdict.rtl') : dir === 'ltr' ? t('verdict.ltr') : t('verdict.none');
+
+    var letters = value.replace(/[^\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF\p{L}]/gu, '');
+    var rtlLetters = (value.match(/[\u0590-\u08FF\uFB1D-\uFDFF\uFE70-\uFEFF]/g) || []).length;
+    $('#vdetail').textContent = letters.length
+      ? t('tester.pct', { pct: pct(rtlLetters / letters.length) })
+      : t('tester.none');
+  }
+  tester.addEventListener('input', updateTester);
+
+  /* ==========================================================================
+   * ۷) شروع
+   * ========================================================================== */
+  applyLang(lang);
+  refresh().then(function () { pollLog(); });
+  setInterval(pollLog, 1800);
+  setInterval(function () { if (!busy) refresh(); }, 12000);
+})();
+</script>
+</body>
+</html>

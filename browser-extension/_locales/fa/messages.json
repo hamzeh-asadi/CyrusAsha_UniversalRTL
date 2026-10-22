@@ -1,0 +1,18 @@
+{
+  "extName": {
+    "message": "CyrusAsha_UniversalRTL-1.0.0",
+    "description": "نام محصول افزونه که در Chrome و Firefox نمایش داده می‌شود."
+  },
+  "extShortName": {
+    "message": "CyrusAsha",
+    "description": "نام کوتاه افزونه."
+  },
+  "extDescription": {
+    "message": "راست‌چین هوشمند چت‌های هوش مصنوعی و سایت‌های HTTPS دلخواه؛ کد چپ‌چین می‌ماند. پردازش محلی و بدون جمع‌آوری داده.",
+    "description": "توضیح کوتاه افزونه؛ متن کامل در فایل معرفی فروشگاه است."
+  },
+  "actionTitle": {
+    "message": "تنظیمات CyrusAsha_UniversalRTL",
+    "description": "راهنمای شناور روی آیکن افزونه."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "displayName": "CyrusAsha_UniversalRTL-1.0.0",
+  "description": "Smart right-to-left (RTL) for Persian, Arabic and Hebrew messages in every AI agent environment: Antigravity, VS Code, Cursor, Windsurf, Kiro and VSCodium. Code and terminals always stay LTR.",
+  "cmd.enable": "CyrusAsha_UniversalRTL-1.0.0: Enable",
+  "cmd.disable": "CyrusAsha_UniversalRTL-1.0.0: Disable",
+  "cmd.toggle": "CyrusAsha_UniversalRTL-1.0.0: Toggle on/off",
+  "cmd.modeSmart": "CyrusAsha_UniversalRTL-1.0.0: Smart mode (auto-detect)",
+  "cmd.modeRtl": "CyrusAsha_UniversalRTL-1.0.0: Force all messages RTL",
+  "cmd.modeLtr": "CyrusAsha_UniversalRTL-1.0.0: Force all messages LTR",
+  "cmd.rescan": "CyrusAsha_UniversalRTL-1.0.0: Rescan interface",
+  "configTitle": "CyrusAsha_UniversalRTL-1.0.0",
+  "cfg.enabled": "Enable the extension on startup.",
+  "cfg.mode": "Direction mode for the RTL engine.",
+  "cfg.mode.smart": "Detect the direction of each message from its own content (recommended)",
+  "cfg.mode.rtl": "Force all text blocks to right-to-left",
+  "cfg.mode.ltr": "Force all text blocks to left-to-right",
+  "cfg.inputs": "Automatic direction for text inputs (dir=auto) — typing Persian moves the caret to the right side.",
+  "cfg.monaco": "Try to right-align the Monaco chat composer when the text is Persian (never touches the code editor or terminal).",
+  "cfg.extraCSS": "Custom CSS, e.g. a Persian font like Vazirmatn.",
+  "cfg.container": "Extra selector for message containers (for compatibility with new chat UIs).",
+  "cfg.exclude": "Selectors that must never be touched."
+}

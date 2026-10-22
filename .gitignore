@@ -1,0 +1,8 @@
+node_modules/
+*.log
+*.pem
+.DS_Store
+demo/screenshot*.png
+demo/gui-screenshot.png
+build/
+release/
