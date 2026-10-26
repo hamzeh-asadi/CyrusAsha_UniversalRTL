@@ -210,14 +210,16 @@ function makePopupEnvironment(savedSettings, permissionResult) {
     assert.ok(!/<script>[^<]/i.test(html), 'popup must not use inline JavaScript');
   });
 
-  await test('Chrome and Firefox popups link to the creator on GitHub and Telegram', async () => {
+  await test('Chrome and Firefox popups link to GitHub, Telegram, and the official Firefox Add-ons page', async () => {
     for (const folder of [CHROME, FIREFOX]) {
       const html = fs.readFileSync(path.join(folder, 'popup.html'), 'utf8');
       assert.ok(html.includes('href="https://github.com/hamzeh-asadi"'));
       assert.ok(html.includes('href="https://t.me/Asadi_hamzeh"'));
-      assert.ok(html.includes('Contact the developer') || html.includes('راه‌های ارتباط با سازنده'));
-      assert.ok((html.match(/target="_blank"/g) || []).length >= 2);
-      assert.ok((html.match(/rel="noopener noreferrer"/g) || []).length >= 2);
+      assert.ok(html.includes('href="https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/"'));
+      assert.ok(html.includes('data-text="firefoxAddons"'));
+      assert.ok(html.includes('Developer and add-on links') || html.includes('پیوندهای سازنده و افزونه'));
+      assert.ok((html.match(/target="_blank"/g) || []).length >= 3);
+      assert.ok((html.match(/rel="noopener noreferrer"/g) || []).length >= 3);
     }
   });
 

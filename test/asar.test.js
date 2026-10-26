@@ -55,7 +55,9 @@ function fixture() {
     );
     const main = official.extractFile(archive, 'main.js').toString();
     assert.strictEqual(main, fs.readFileSync(path.join(src, 'main.js'), 'utf8'));
-    const util = official.extractFile(archive, 'src/deep/util.js').toString();
+    // @electron/asar's extractFile splits on path.sep; a forward-slash path
+    // cannot traverse nested entries on Windows. path.join is portable here.
+    const util = official.extractFile(archive, path.join('src', 'deep', 'util.js')).toString();
     assert.ok(util.includes('سلام دنیا'));
     const bin = official.extractFile(archive, 'binary.bin');
     assert.deepStrictEqual([...bin], [0, 1, 2, 3, 250, 251, 252, 253]);

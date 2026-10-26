@@ -307,8 +307,9 @@
             <a class="btn primary" href="install/browser/chrome.crx" data-i18n="web.chromeDownload">دانلود بسته‌ی Chrome (.crx)</a>
             <a class="btn soft" href="install/browser/chrome.zip" data-i18n="web.chromeZipDownload">دانلود ZIP فروشگاه Chrome / Edge</a>
             <a class="btn ghost" href="install/browser/firefox.xpi" data-i18n="web.firefoxDownload">دانلود افزونه‌ی Firefox</a>
+            <a class="btn ghost" href="https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/" target="_blank" rel="noopener noreferrer" data-i18n="web.firefoxStore">Firefox Add-ons (AMO)</a>
           </div>
-          <div class="desc web-install-help" data-i18n="web.installHelp">CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. XPI محلی Firefox موقت است و نصب دائمی به امضای Mozilla نیاز دارد.</div>
+          <div class="desc web-install-help" data-i18n="web.installHelp">CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. برای نصب عادی Firefox از صفحه‌ی رسمی AMO استفاده کن؛ XPI محلی فقط برای آزمون است و امضای Mozilla ندارد.</div>
           <div class="desc web-copilot-note">
             <span data-i18n="web.copilotBefore">برای چت مایکروسافت در Edge از</span>
             <a class="inline-link" href="https://copilot.microsoft.com/" target="_blank" rel="noopener noreferrer">Microsoft Copilot</a>
@@ -401,16 +402,16 @@
 </main>
 
 <!--
-  نوار پیوندها در انتهای کنترل‌پنل؛ فقط دو مقصد رسمی سازنده را نشان می‌دهد.
+  نوار پیوندهای سازنده و صفحه‌ی رسمی افزونه‌ی Firefox در انتهای کنترل‌پنل.
   لینک‌ها در زبانه‌ی تازه باز می‌شوند و rel="noopener noreferrer" از دسترسی
   صفحه‌ی مقصد به پنجره‌ی کنترل‌پنل جلوگیری می‌کند.
-  Footer links at the end of the panel. The rel attribute prevents the new
-  tab from gaining access to the Control Panel window.
+  Footer links to the developer and official Firefox add-on listing. The rel
+  attribute prevents the new tab from gaining access to the Control Panel.
 -->
 <footer class="site-footer">
   <div class="site-footer-inner">
-    <span class="footer-label" data-i18n="footer.title">راه‌های ارتباطی با سازنده</span>
-    <nav class="footer-links" aria-label="GitHub و Telegram / GitHub and Telegram">
+    <span class="footer-label" data-i18n="footer.title">پیوندهای سازنده و افزونه</span>
+    <nav class="footer-links" aria-label="GitHub، Telegram و Firefox Add-ons / GitHub, Telegram, and Firefox Add-ons">
       <a class="footer-link" href="https://github.com/hamzeh-asadi" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.043-1.61-4.043-1.61-.546-1.385-1.333-1.754-1.333-1.754-1.09-.745.083-.729.083-.729 1.205.084 1.838 1.237 1.838 1.237 1.07 1.833 2.807 1.304 3.492.997.108-.775.418-1.305.762-1.605-2.665-.303-5.466-1.334-5.466-5.931 0-1.311.469-2.381 1.235-3.221-.124-.303-.535-1.523.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.873.118 3.176.77.84 1.233 1.91 1.233 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
         <span>GitHub</span>
@@ -418,6 +419,9 @@
       <a class="footer-link" href="https://t.me/Asadi_hamzeh" target="_blank" rel="noopener noreferrer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.8 3.2 18.5 20c-.25 1.2-.95 1.5-1.95.95l-5.4-3.98-2.6 2.5c-.3.3-.55.55-1.1.55l.4-5.5L18 6.6c.4-.35-.1-.55-.65-.2L6.2 14.5 1 12.9c-1.15-.35-1.15-1.15.25-1.7L19.8 3.1c.95-.35 1.75.2 2 .1Z"/></svg>
         <span>Telegram</span>
+      </a>
+      <a class="footer-link" href="https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/" target="_blank" rel="noopener noreferrer">
+        <span>Firefox Add-ons (AMO)</span>
       </a>
     </nav>
   </div>
@@ -456,7 +460,7 @@
       'app.subtitle': 'راست‌چین هوشمند برای همه‌ی محیط‌های Agent',
       'app.local': 'سرور محلی',
       'app.titleTag': 'CyrusAsha_UniversalRTL-1.0.0 — مرکز کنترل',
-      'footer.title': 'راه‌های ارتباطی با سازنده',
+      'footer.title': 'پیوندهای سازنده و افزونه',
       'btn.scan': 'اسکن مجدد',
       'btn.patchAll': 'پچ همه',
       'apps.title': 'اپ‌های Electron',
@@ -473,10 +477,13 @@
       'apps.addBtn': 'افزودن مسیر',
       'chip.patched': 'پچ‌شده',
       'chip.unpatched': 'پچ‌نشده',
+      'chip.updateRequired': 'نیازمند به‌روزرسانی',
+      'chip.updateTitle': 'موتور داخل برنامه قدیمی است؛ برای به‌روزرسانی دوباره پچ کن.',
       'chip.custom': 'دستی',
       'chip.integrity': 'یکپارچگی ASAR',
       'chip.integrityTitle': 'این برنامه بررسی یکپارچگی ASAR دارد؛ اگر بعد از پچ اجرا نشد، حذف پچ را بزن',
       'btn.patch': 'پچ',
+      'btn.update': 'به‌روزرسانی پچ',
       'btn.unpatch': 'حذف پچ',
       'btn.folder': 'باز کردن پوشه',
       'btn.forget': 'حذف از فهرست',
@@ -494,7 +501,8 @@
         'web.chromeDownload': 'دانلود بسته‌ی Chrome (.crx)',
         'web.chromeZipDownload': 'دانلود ZIP فروشگاه Chrome / Edge',
         'web.firefoxDownload': 'دانلود افزونه‌ی Firefox',
-        'web.installHelp': 'CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. XPI محلی Firefox موقت است و نصب دائمی به امضای Mozilla نیاز دارد.',
+        'web.firefoxStore': 'نصب از Firefox Add-ons (AMO)',
+        'web.installHelp': 'CRX بسته‌بندی‌شده است؛ قوانین Chrome ممکن است نصب محلی را مسدود کند. برای انتشار عادی، ZIP را به Chrome Web Store بده. ZIP برای Edge Add-ons است. برای نصب عادی Firefox از صفحه‌ی رسمی AMO استفاده کن؛ XPI محلی فقط برای آزمون است و امضای Mozilla ندارد.',
         'web.copilotBefore': 'برای چت مایکروسافت در Edge از',
         'web.copilotAfter': 'استفاده کن؛ www.bing.com صفحه‌ی جست‌وجوست، نه چت. افزونه عمداً جست‌وجوی Bing را تغییر نمی‌دهد.',
         'web.alternatives': 'روش‌های جایگزین (Tampermonkey / بوکمارکلت)',
@@ -583,7 +591,7 @@
       'app.subtitle': 'Smart right-to-left for every AI agent environment',
       'app.local': 'Local server',
       'app.titleTag': 'CyrusAsha_UniversalRTL-1.0.0 — Control Panel',
-      'footer.title': 'Connect with the developer',
+      'footer.title': 'Developer and add-on links',
       'btn.scan': 'Rescan',
       'btn.patchAll': 'Patch all',
       'apps.title': 'Electron apps',
@@ -600,10 +608,13 @@
       'apps.addBtn': 'Add path',
       'chip.patched': 'Patched',
       'chip.unpatched': 'Not patched',
+      'chip.updateRequired': 'Update needed',
+      'chip.updateTitle': 'The embedded engine is out of date; apply the patch again to update it.',
       'chip.custom': 'Manual',
       'chip.integrity': 'ASAR integrity',
       'chip.integrityTitle': 'This app verifies ASAR integrity; if it fails to start after patching, use Unpatch',
       'btn.patch': 'Patch',
+      'btn.update': 'Update patch',
       'btn.unpatch': 'Unpatch',
       'btn.folder': 'Open folder',
       'btn.forget': 'Remove from list',
@@ -621,7 +632,8 @@
         'web.chromeDownload': 'Download packed Chrome extension (.crx)',
         'web.chromeZipDownload': 'Download Chrome Web Store / Edge ZIP',
         'web.firefoxDownload': 'Download Firefox extension',
-        'web.installHelp': 'The CRX is packed; Chrome policies may block local sideloading. For normal Chrome distribution, submit the ZIP to the Chrome Web Store. The ZIP is for Edge Add-ons. A local Firefox XPI is temporary; permanent installation requires Mozilla signing.',
+        'web.firefoxStore': 'Install from Firefox Add-ons (AMO)',
+        'web.installHelp': 'The CRX is packed; Chrome policies may block local sideloading. For normal Chrome distribution, submit the ZIP to the Chrome Web Store. The ZIP is for Edge Add-ons. Use the official AMO page for a normal Firefox installation; the local XPI is only for testing and is not Mozilla-signed.',
         'web.copilotBefore': 'For Microsoft chat in Edge, open',
         'web.copilotAfter': '— www.bing.com is the search homepage, not chat. The extension intentionally leaves normal Bing search unchanged.',
         'web.alternatives': 'Alternative methods (Tampermonkey / bookmarklet)',
@@ -815,7 +827,7 @@
     var box = $('#apps');
 
     $('#st-total').textContent = num(apps.length);
-    $('#st-patched').textContent = num(apps.filter(function (a) { return a.patched; }).length);
+    $('#st-patched').textContent = num(apps.filter(function (a) { return a.patched && a.patchCurrent !== false; }).length);
     $('#st-backups').textContent = num(apps.filter(function (a) { return a.backup; }).length);
     $('#apps-sub').textContent = apps.length ? t('apps.found', { n: num(apps.length) }) : t('apps.notFound');
 
@@ -827,15 +839,18 @@
 
     box.innerHTML = apps.map(function (app) {
       var letter = (app.name || '?').trim().charAt(0).toUpperCase();
-      var chips = app.patched ? '<span class="chip on">' + esc(t('chip.patched')) + '</span>'
-                               : '<span class="chip off">' + esc(t('chip.unpatched')) + '</span>';
+      var needsUpdate = app.patched && app.patchCurrent === false;
+      var chips = needsUpdate
+        ? '<span class="chip warn" title="' + esc(t('chip.updateTitle')) + '">' + esc(t('chip.updateRequired')) + '</span>'
+        : app.patched ? '<span class="chip on">' + esc(t('chip.patched')) + '</span>'
+                      : '<span class="chip off">' + esc(t('chip.unpatched')) + '</span>';
       if (app.custom) chips += ' <span class="chip custom">' + esc(t('chip.custom')) + '</span>';
       if (app.hasIntegrity) {
         chips += ' <span class="chip warn" title="' + esc(t('chip.integrityTitle')) + '">' +
                  esc(t('chip.integrity')) + '</span>';
       }
 
-      return '<div class="app ' + (app.patched ? 'patched' : '') + '">' +
+      return '<div class="app ' + (app.patched && !needsUpdate ? 'patched' : '') + '">' +
         '<div class="ava">' + esc(letter) + '</div>' +
         '<div class="app-main">' +
           '<div class="app-title"><b>' + esc(app.name) + '</b>' +
@@ -844,9 +859,9 @@
           '<div class="app-path" title="' + esc(app.asar) + '">' + esc(app.asar) + '</div>' +
         '</div>' +
         '<div class="app-actions">' +
-          (app.patched
+          (app.patched && !needsUpdate
             ? '<button class="btn danger sm" data-act="unpatch" data-root="' + esc(app.appRoot) + '">' + esc(t('btn.unpatch')) + '</button>'
-            : '<button class="btn primary sm" data-act="patch" data-root="' + esc(app.appRoot) + '">' + esc(t('btn.patch')) + '</button>') +
+            : '<button class="btn primary sm" data-act="patch" data-root="' + esc(app.appRoot) + '">' + esc(needsUpdate ? t('btn.update') : t('btn.patch')) + '</button>') +
           '<button class="btn ghost sm" data-act="folder" data-path="' + esc(app.appRoot) + '" title="' + esc(t('btn.folder')) + '">📁</button>' +
           (app.custom ? '<button class="btn ghost sm" data-act="forget" data-root="' + esc(app.appRoot) + '" title="' + esc(t('btn.forget')) + '">×</button>' : '') +
         '</div>' +
@@ -1022,7 +1037,7 @@
   });
 
   $('#btn-patch-all').addEventListener('click', async function () {
-    var pending = (state.apps || []).filter(function (a) { return !a.patched; });
+    var pending = (state.apps || []).filter(function (a) { return !a.patched || a.patchCurrent === false; });
     if (!pending.length) { toast(t('toast.allPatched'), 'ok'); return; }
     setBusy(true, lang === 'fa' ? 'در حال پچ همه…' : 'Patching all…');
     var r = await api('/api/patch-all', { mode: state.config.mode, css: state.config.extraCSS });

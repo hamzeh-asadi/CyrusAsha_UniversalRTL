@@ -122,6 +122,27 @@ function unzip(zipPath, destDir) {
   }
 }
 
+async function makeWindowsIcon() {
+  step('ساخت آیکون ویندوز از لوگو');
+  const logo = path.join(ROOT, 'assets', 'CyrusAsha_UniversalRTL-logo.png');
+  if (!fs.existsSync(logo)) {
+    log('لوگو پیدا نشد؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + logo);
+    return null;
+  }
+  try {
+    // png-to-ico is ESM-only; this file is CommonJS.
+    const pngToIco = (await import('png-to-ico')).default;
+    const ico = await pngToIco(logo);
+    const out = path.join(BUILD, PRODUCT_NAME + '.ico');
+    fs.writeFileSync(out, ico);
+    log(PRODUCT_NAME + '.ico → ' + Math.round(ico.length / 1024) + ' KB');
+    return out;
+  } catch (e) {
+    log('ساخت آیکون ناموفق بود؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + e.message);
+    return null;
+  }
+}
+
 async function getNodeExe() {
   step('تهیه node.exe ویندوز (' + NODE_VERSION + ')');
   const cached = path.join(os.tmpdir(), 'rtl-node-' + NODE_VERSION + '-win-x64.exe');
@@ -150,9 +171,59 @@ async function getNodeExe() {
 /* ------------------------------------------------------------------ *
  * ۴. تزریق بلاب داخل node.exe
  * ------------------------------------------------------------------ */
-function inject(nodeExe, blobPath, outExe) {
+async function writeBaseExecutable(nodeExe, outExe, icoPath) {
+  step('افزودن آیکون و مشخصات ویندوز');
+  const ResEdit = await require('resedit/cjs').load();
+  const base = ResEdit.NtExecutable.from(fs.readFileSync(nodeExe), { ignoreCert: true });
+  const resources = ResEdit.NtExecutableResource.from(base);
+
+  const iconFile = ResEdit.Data.IconFile.from(fs.readFileSync(icoPath));
+  const groups = ResEdit.Resource.IconGroupEntry.fromEntries(resources.entries);
+  const group = groups[0] || { id: 1, lang: 1033 };
+  ResEdit.Resource.IconGroupEntry.replaceIconsForResource(
+    resources.entries,
+    group.id,
+    group.lang,
+    iconFile.icons.map((item) => item.data)
+  );
+
+  const versions = ResEdit.Resource.VersionInfo.fromEntries(resources.entries);
+  if (versions.length) {
+    const vi = versions[0];
+    const parts = String(PKG.version).split(/[.+-]/).map((n) => parseInt(n, 10) || 0);
+    const [a = 0, b = 0, c = 0, d = 0] = parts;
+    vi.setFileVersion(a, b, c, d, 1033);
+    vi.setProductVersion(a, b, c, d, 1033);
+    vi.setStringValues({ lang: 1033, codepage: 1200 }, {
+      CompanyName: 'CyrusAsha',
+      ProductName: 'CyrusAsha UniversalRTL',
+      FileDescription: 'CyrusAsha UniversalRTL - Smart RTL for AI agents',
+      FileVersion: PKG.version,
+      ProductVersion: PKG.version,
+      OriginalFilename: APP_EXE,
+      InternalName: PRODUCT_NAME,
+      LegalCopyright: 'MIT License'
+    });
+    vi.outputToResourceEntries(resources.entries);
+  }
+
+  resources.outputResource(base);
+  fs.writeFileSync(outExe, Buffer.from(base.generate()));
+  log('آیکون و مشخصات نسخه اعمال شد');
+}
+
+async function inject(nodeExe, blobPath, outExe, icoPath) {
+  if (icoPath) {
+    try {
+      await writeBaseExecutable(nodeExe, outExe, icoPath);
+    } catch (e) {
+      log('افزودن آیکون ناموفق بود؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + e.message);
+      fs.copyFileSync(nodeExe, outExe);
+    }
+  } else {
+    fs.copyFileSync(nodeExe, outExe);
+  }
   step('تزریق بلاب داخل node.exe (postject)');
-  fs.copyFileSync(nodeExe, outExe);
   const res = spawnSync(process.execPath, [
     path.join(ROOT, 'node_modules', 'postject', 'dist', 'cli.js'),
     outExe,
@@ -172,11 +243,15 @@ function inject(nodeExe, blobPath, outExe) {
 /* ------------------------------------------------------------------ *
  * ۵. چیدن پوشه‌ی portable
  * ------------------------------------------------------------------ */
+const COPY_SKIP = new Set(['.agents', '.git', '.freebuff', 'node_modules', '.cache', 'coverage', '__pycache__']);
 function copyIfExists(src, destDir, rel) {
   if (!fs.existsSync(src)) return;
   const dest = path.join(destDir, rel);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.cpSync(src, dest, { recursive: true });
+  fs.cpSync(src, dest, {
+    recursive: true,
+    filter: (from) => !COPY_SKIP.has(path.basename(from))
+  });
 }
 
 function assemblePortable(exePath) {
@@ -205,6 +280,7 @@ function assemblePortable(exePath) {
   copyIfExists(path.join(ROOT, 'release'), dir, 'release');
   copyIfExists(path.join(ROOT, 'LICENSE'), dir, 'LICENSE');
   copyIfExists(path.join(ROOT, 'README.md'), dir, 'README.md');
+  copyIfExists(path.join(ROOT, 'windows', 'diagnose-freebuff.bat'), dir, 'diagnose-freebuff.bat');
 
   // node_modules لازم نیست؛ فقط ابزار ساخت VSIX از tools/zip استفاده می‌کند.
   fs.rmSync(path.join(dir, 'release', 'windows'), { recursive: true, force: true });
@@ -231,11 +307,26 @@ function assemblePortable(exePath) {
     '    Node.js is NOT required — it is bundled inside the exe.',
     '    The control panel opens in your browser at http://localhost:4477',
     '    If the port is busy, the next free port is used automatically.',
+    '    For apps under Program Files, run this tool as Administrator and',
+    '    fully close the target app before patching it.',
     '',
     'FA: روی Start.bat (یا ' + APP_EXE + ') دوبار کلیک کن.',
     '    به Node.js نیازی نیست — داخل خود exe هست.',
     '    مرکز کنترل در مرورگر باز می‌شود: http://localhost:4477',
     '    اگر پورت اشغال باشد، پورت بعدی آزاد خودکار انتخاب می‌شود.',
+    '    برای برنامه‌های داخل Program Files، ابزار را با Administrator اجرا کن',
+    '    و قبل از پچ، برنامه‌ی هدف را کامل ببند.',
+    '',
+    'Freebuff v0.0.192 runtime diagnosis / عیب‌یابی اجرای Freebuff:',
+    '  EN: Apply the patch from this build while Freebuff is fully closed.',
+    '      Then run diagnose-freebuff.bat, reproduce the issue, and quit.',
+    '      The log is in %TEMP% and contains status/counts only, not chat text.',
+    '  FA: وقتی Freebuff کاملاً بسته است، پچ همین نسخه را اعمال کن؛ سپس',
+    '      diagnose-freebuff.bat را اجرا، مشکل را بازتولید و برنامه را ببند.',
+    '      گزارش در %TEMP% است و فقط وضعیت/شمارنده‌ها را دارد، نه متن گفتگو.',
+    '',
+    'Firefox extension / افزونه‌ی Firefox:',
+    '  https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/',
     '',
     'Uninstall / حذف:',
     '  EN: Just delete this folder. For apps that were patched, use the',
@@ -333,7 +424,8 @@ async function prepareReleaseArtifacts() {
     bundle();
     const blob = makeSeaBlob();
     const nodeExe = await getNodeExe();
-    const exe = inject(nodeExe, blob, path.join(BUILD, APP_EXE));
+    const ico = await makeWindowsIcon();
+    const exe = await inject(nodeExe, blob, path.join(BUILD, APP_EXE), ico);
     const dir = assemblePortable(exe);
     fs.mkdirSync(OUT_DIR, { recursive: true });
     const zip = path.join(OUT_DIR, PRODUCT_TITLE + '-win-x64.zip');

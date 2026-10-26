@@ -27,7 +27,11 @@ async function test(name, fn) {
 
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'rtl-i18n-home-'));
   const server = spawn(process.execPath, [path.join(ROOT, 'src', 'gui', 'server.js'), '--port', String(PORT)], {
-    env: Object.assign({}, process.env, { RTL_UNIVERSAL_HOME: home, PORT: String(PORT) }),
+    env: Object.assign({}, process.env, {
+      RTL_UNIVERSAL_HOME: home,
+      RTL_UNIVERSAL_DISABLE_DEFAULT_SCAN: '1',
+      PORT: String(PORT)
+    }),
     stdio: 'ignore'
   });
 
@@ -62,18 +66,22 @@ async function test(name, fn) {
       assert.ok(webCard.includes('دانلود بسته‌ی Chrome (.crx)'));
       assert.ok(webCard.includes('دانلود ZIP فروشگاه Chrome / Edge'));
       assert.ok(webCard.includes('دانلود افزونه‌ی Firefox'));
+      assert.ok(webCard.includes('نصب از Firefox Add-ons (AMO)'));
       assert.ok(webCard.includes('Microsoft Copilot'));
 
       // پیوندهای پایانی هم مقصد درست و هم مشخصات امنِ زبانه‌ی تازه را داشته باشند.
-      // Also verify the two requested social links are present and safely opened.
+      // Check GitHub, Telegram, and the official Firefox listing.
       const footer = page.locator('.site-footer');
-      assert.ok((await footer.innerText()).includes('راه‌های ارتباطی با سازنده'));
+      assert.ok((await footer.innerText()).includes('پیوندهای سازنده و افزونه'));
       const links = footer.locator('a');
-      assert.strictEqual(await links.count(), 2);
+      assert.strictEqual(await links.count(), 3);
       assert.strictEqual(await links.nth(0).getAttribute('href'), 'https://github.com/hamzeh-asadi');
       assert.strictEqual(await links.nth(1).getAttribute('href'), 'https://t.me/Asadi_hamzeh');
-      assert.strictEqual(await links.nth(0).getAttribute('rel'), 'noopener noreferrer');
-      assert.strictEqual(await links.nth(1).getAttribute('rel'), 'noopener noreferrer');
+      assert.strictEqual(await links.nth(2).getAttribute('href'), 'https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/');
+      for (const link of await links.all()) {
+        assert.strictEqual(await link.getAttribute('target'), '_blank');
+        assert.strictEqual(await link.getAttribute('rel'), 'noopener noreferrer');
+      }
     });
 
     await test('switch to English flips text and direction', async () => {
@@ -91,9 +99,10 @@ async function test(name, fn) {
       assert.ok(body.includes('Download packed Chrome extension (.crx)'));
       assert.ok(body.includes('Download Chrome Web Store / Edge ZIP'));
       assert.ok(body.includes('Download Firefox extension'));
+      assert.ok(body.includes('Install from Firefox Add-ons (AMO)'));
       assert.ok(body.includes('Microsoft Copilot'));
       const footerTitle = await page.locator('.footer-label').innerText();
-      assert.strictEqual(footerTitle, 'Connect with the developer');
+      assert.strictEqual(footerTitle, 'Developer and add-on links');
       assert.strictEqual(errors.length, 0, errors.join('; '));
     });
 

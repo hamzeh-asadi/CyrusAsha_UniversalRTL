@@ -200,9 +200,11 @@ function listApps() {
     let info = null;
     try { info = asar.readManifest(asarPath); } catch (e) { info = null; }
     let patched = false;
+    let patchCurrent = false;
     let hasIntegrity = false;
     try {
       patched = patcher.isPatched(asarPath);
+      patchCurrent = patched && patcher.isPatchCurrent(asarPath);
       const h = asar.readHeader(asarPath);
       hasIntegrity = !!(h.header && h.header.integrity);
     } catch (e) { /* ignore */ }
@@ -214,6 +216,7 @@ function listApps() {
       name: (info && (info.productName || info.name)) || path.basename(appRoot),
       version: (info && info.version) || null,
       patched,
+      patchCurrent,
       hasIntegrity,
       backup: isFile(asarPath + patcher.BACKUP_SUFFIX),
       custom: false
@@ -512,7 +515,8 @@ function statePayload() {
     scanDirs: customScanDirs(),
     stats: {
       total: apps.length,
-      patched: apps.filter((a) => a.patched).length
+      patched: apps.filter((a) => a.patched && a.patchCurrent).length,
+      outdated: apps.filter((a) => a.patched && !a.patchCurrent).length
     }
   };
 }
@@ -549,7 +553,7 @@ async function handleApi(req, res, pathname) {
       const mode = body.mode || config.mode;
       const css = body.css !== undefined ? body.css : config.extraCSS;
       const cssFile = config.cssFile || undefined;
-      const targets = pathname === '/api/patch-all' ? listApps().filter((a) => !a.patched) : [findApp(body.appRoot)];
+      const targets = pathname === '/api/patch-all' ? listApps().filter((a) => !a.patched || a.patchCurrent === false) : [findApp(body.appRoot)];
       if (!targets.length || targets.some((t) => !t)) {
         return json(res, 400, { ok: false, error: 'برنامه پیدا نشد.' });
       }

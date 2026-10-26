@@ -30,8 +30,15 @@ const ENGINE_PATH = findAsset(path.join('src', 'engine', 'rtl-engine.js')) ||
   path.join(__dirname, '..', 'engine', 'rtl-engine.js');
 
 /* نام فایل‌های تزریقی داخل app.asar. اگر این نام‌ها را عوض کنی،
- * HOOK_SOURCE و injectSnippet هم باید هماهنگ شوند. */
-const HOOK_FILE = 'rtl-universal.js';
+ * HOOK_SOURCE و injectSnippet هم باید هماهنگ شوند.
+ *
+ * هُک عمداً .cjs است، نه .js: بعضی اپ‌ها (مثل Freebuff) در package.json خود
+ * «type": "module"» دارند و Electron 33 هنوز Node 20 است. در آن حالت Node
+ * هر فایل .js را ESM می‌داند و require() با ERR_REQUIRE_ESM شکست می‌خورد؛
+ * هُک ما CommonJS است و باید پسوند .cjs داشته باشد تا در هر دو نوع بسته
+ * به‌عنوان CommonJS بارگذاری شود. */
+const HOOK_FILE = 'rtl-universal.cjs';
+const LEGACY_HOOK_FILE = 'rtl-universal.js';
 const ENGINE_FILE = 'rtl-universal-engine.js';
 const CONFIG_FILE = 'rtl-universal.config.json';
 const CSS_FILE = 'rtl-universal.css';
@@ -48,7 +55,7 @@ const BACKUP_SUFFIX = '.rtl-backup';
  *
  * برای راست‌چین‌کردن، باید موتور ما داخل هر صفحه تزریق شود. راه امن:
  *   ۱. app.asar را باز می‌کنیم؛
- *   ۲. یک فایل کوچک (rtl-universal.js) داخلش می‌گذاریم که به رویداد
+ *   ۲. یک فایل کوچک (rtl-universal.cjs) داخلش می‌گذاریم که به رویداد
  *      «web-contents-created» گوش می‌دهد و موتور را در هر صفحه اجرا می‌کند؛
  *   ۳. یک خط require برای آن فایل به main process اضافه می‌کنیم؛
  *   ۴. دوباره بسته‌بندی می‌کنیم.
@@ -69,11 +76,14 @@ const SCRIPT_EXTS = new Set(['.js', '.cjs']);
  *
  * چه می‌کند؟
  *   - به app.on('web-contents-created') گوش می‌دهد (هر پنجره/تب جدید)
- *   - در رویدادهای dom-ready و did-finish-load، موتور را با
+ *   - در رویدادهای dom-ready و did-finish-load، موتور را ابتدا با
  *     contents.executeJavaScript(...) در صفحه تزریق می‌کند
  *   - پیکربندی (حالت/فونت) را هم همراه موتور می‌فرستد
+ *   - اگر CSP اجرای صفحه‌ی اصلی را رد کند، در یک isolated world اختصاصی تلاش می‌کند؛
+ *     سیاست CSP برنامه را تغییر نمی‌دهد و unsafe-eval اضافه نمی‌کند
+ *   - گزارش runtime فقط با opt-in و فقط شامل نسخه/وضعیت/شمارنده‌هاست؛ متن گفتگو را نمی‌خواند
  * ========================================================================== */
-const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://github.com/rtl-universal) */
+const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://github.com/rtl-universal) */
 (function () {
   'use strict';
   var electron = null;
@@ -87,6 +97,67 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://gi
   var path = require('path');
   var base = __dirname;
   var engineSource = null;
+  var diagnostics = false;
+  try { diagnostics = process.env.RTL_UNIVERSAL_DIAGNOSTICS === '1'; } catch (e) {}
+  var diagnosticPath = null;
+  if (diagnostics) {
+    try {
+      diagnosticPath = process.env.RTL_UNIVERSAL_DIAGNOSTICS_PATH || path.join(
+        process.env.TEMP || process.env.TMP || process.cwd(),
+        'CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl'
+      );
+      fs.writeFileSync(diagnosticPath, '', 'utf8');
+    } catch (e) { diagnosticPath = null; }
+  }
+
+  function diag(event, contents, details) {
+    if (!diagnostics || !diagnosticPath) return;
+    try {
+      var record = {
+        time: new Date().toISOString(),
+        event: event,
+        pid: process.pid,
+        electron: process.versions && process.versions.electron || null
+      };
+      try { record.appVersion = app.getVersion(); } catch (e) { record.appVersion = null; }
+      if (contents) {
+        record.webContentsId = typeof contents.id === 'number' ? contents.id : null;
+        try { record.webContentsType = contents.getType(); } catch (e) { record.webContentsType = null; }
+      }
+      if (details) record.details = details;
+      try {
+        if (fs.existsSync(diagnosticPath) && fs.statSync(diagnosticPath).size > 524288) {
+          fs.writeFileSync(diagnosticPath, '', 'utf8');
+        }
+        fs.appendFileSync(diagnosticPath, JSON.stringify(record) + String.fromCharCode(10), 'utf8');
+      } catch (e) {}
+    } catch (e) {}
+  }
+
+  function errorClass(error) {
+    var message = '';
+    try { message = String(error && (error.message || error)); } catch (e) {}
+    return {
+      name: error && error.name ? String(error.name) : 'Error',
+      category: /content.?security.?policy|unsafe-eval|evalerror|script-src/i.test(message) ? 'csp' : 'other'
+    };
+  }
+
+  function summarize(result) {
+    if (result && typeof result === 'object') {
+      return {
+        loaded: !!result.loaded,
+        version: result.version || null,
+        mode: result.mode || null,
+        proseCount: Number(result.proseCount) || 0,
+        rtlCount: Number(result.rtlCount) || 0,
+        stats: result.stats || null
+      };
+    }
+    return { loaded: result === true, version: null, mode: null, proseCount: 0, rtlCount: 0, stats: null };
+  }
+
+  diag('hook-loaded', null, { diagnostics: diagnostics });
 
   function readIfExists(name) {
     try {
@@ -100,13 +171,33 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://gi
   try { config = JSON.parse(readIfExists('${CONFIG_FILE}') || 'null'); } catch (e) { config = null; }
   var extraCss = readIfExists('${CSS_FILE}') || '';
   engineSource = readIfExists('${ENGINE_FILE}');
-  if (!engineSource) return;
+  if (!engineSource) { diag('engine-missing', null); return; }
 
   function buildCode() {
     var cfg = {};
     if (config && typeof config === 'object') { for (var k in config) cfg[k] = config[k]; }
-    if (extraCss) cfg.extraCSS = (cfg.extraCSS ? cfg.extraCSS + '\\n' : '') + extraCss;
-    return 'window.__RTL_UNIVERSAL_CONFIG__ = ' + JSON.stringify(cfg) + ';\\n' + engineSource;
+    if (extraCss) cfg.extraCSS = (cfg.extraCSS ? cfg.extraCSS + String.fromCharCode(10) : '') + extraCss;
+    var code = 'window.__RTL_UNIVERSAL_CONFIG__ = ' + JSON.stringify(cfg) + ';' + String.fromCharCode(10) + engineSource;
+    if (!diagnostics) return code + String.fromCharCode(10) + ';!!(window.RTLUniversal && window.RTLUniversal.version)';
+    return code + String.fromCharCode(10) + ';(function(){var r=window.RTLUniversal;var p=document.querySelectorAll(".prose");var q=document.querySelectorAll(".prose[data-rtl-dir=rtl]");return{loaded:!!r,version:r&&r.version||null,mode:r&&r.config&&r.config.mode||null,proseCount:p.length,rtlCount:q.length,stats:r&&r.stats||null};})()';
+  }
+
+  function injectIsolated(contents, code, reason) {
+    try {
+      if (!contents || contents.isDestroyed && contents.isDestroyed()) return;
+      if (typeof contents.executeJavaScriptInIsolatedWorld !== 'function') {
+        diag('isolated-world-unavailable', contents, { reason: reason });
+        return;
+      }
+      var result = contents.executeJavaScriptInIsolatedWorld(98765, [{ code: code }], true);
+      Promise.resolve(result).then(function (value) {
+        diag('isolated-world-result', contents, { reason: reason, status: summarize(value) });
+      }).catch(function (error) {
+        diag('isolated-world-error', contents, { reason: reason, error: errorClass(error) });
+      });
+    } catch (error) {
+      diag('isolated-world-error', contents, { reason: reason, error: errorClass(error) });
+    }
   }
 
   function injectInto(contents) {
@@ -114,9 +205,23 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://gi
       if (!contents || contents.isDestroyed && contents.isDestroyed()) return;
       var type = '';
       try { type = contents.getType(); } catch (e) {}
-      if (type === 'remote') return;
-      contents.executeJavaScript(buildCode(), true).catch(function () {});
-    } catch (e) {}
+      if (type === 'remote') { diag('renderer-skipped', contents, { reason: 'remote' }); return; }
+      var code = buildCode();
+      diag('renderer-inject-start', contents, { world: 'main' });
+      Promise.resolve(contents.executeJavaScript(code, true)).then(function (value) {
+        var status = summarize(value);
+        diag('renderer-inject-result', contents, { world: 'main', status: status });
+        if (!status.loaded) injectIsolated(contents, code, 'main-world-marker-missing');
+      }).catch(function (error) {
+        var classified = errorClass(error);
+        diag('renderer-inject-error', contents, { world: 'main', error: classified });
+        if (classified.category === 'csp') injectIsolated(contents, code, 'main-world-csp-rejection');
+      });
+    } catch (error) {
+      var classified = errorClass(error);
+      diag('renderer-inject-error', contents, { world: 'main', error: classified });
+      if (classified.category === 'csp') injectIsolated(contents, buildCode(), 'main-world-csp-rejection');
+    }
   }
 
   function attach(contents) {
@@ -125,6 +230,7 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://gi
       contents.__rtlUniversalAttached = true;
       contents.on('dom-ready', function () { injectInto(contents); });
       contents.on('did-finish-load', function () { injectInto(contents); });
+      diag('web-contents-attached', contents);
     } catch (e) {}
   }
 
@@ -135,24 +241,27 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v1 (https://gi
     app.whenReady().then(function () {
       try {
         electron.webContents.getAllWebContents().forEach(attach);
-      } catch (e) {}
+      } catch (e) { diag('enumerate-web-contents-error', null, errorClass(e)); }
     });
-  } catch (e) {}
+  } catch (e) { diag('when-ready-error', null, errorClass(e)); }
 })();
 `;
 
 /* آن یک خطی که به main process برنامه اضافه می‌شود.
  * چرا حلقه‌ی جستجو؟ چون فایل main می‌تواند در ریشه‌ی asar یا در زیرپوشه باشد
- * (مثلاً out/main.js). تا ۷ سطح بالا می‌رویم تا rtl-universal.js را پیدا کنیم.
- * اگر پیدا نشد، از process.resourcesPath هم تلاش می‌کنیم.
+ * (مثلاً out/main.js). تا ۷ سطح بالا می‌رویم تا rtl-universal.cjs را پیدا کنیم.
+ * اگر پیدا نشد، از process.resourcesPath هم تلاش می‌کنیم. نام قدیمی .js هم
+ * برای سازگاری با پچ‌های قبلی بررسی می‌شود، اما فایل تازه همیشه .cjs است.
  *
  * try/catch همه‌جا هست تا اگر چیزی شکست خورد، برنامه‌ی اصلی همچنان اجرا شود. */
 function injectSnippet() {
-  // Finds rtl-universal.js from any depth inside the asar, then from resourcesPath.
+  // Finds rtl-universal.cjs (or a legacy rtl-universal.js) from any depth inside
+  // the asar, then from resourcesPath. .cjs is tried first so an ESM-typed app
+  // never feeds the CommonJS hook to Node's ESM loader.
   return MARKER + ';(function(){try{' +
-    "var p=require('path'),fs=require('fs'),b=__dirname,f,i;" +
-    "for(i=0;i<7;i++){try{f=p.join(b,'" + HOOK_FILE + "');if(fs.existsSync(f)){require(f);return;}}catch(e){}b=p.join(b,'..');}" +
-    "try{f=p.join(process.resourcesPath||'','app.asar','" + HOOK_FILE + "');if(fs.existsSync(f)){require(f);}}catch(e){}" +
+    "var p=require('path'),fs=require('fs'),b=__dirname,f,i,n,names=['" + HOOK_FILE + "','" + LEGACY_HOOK_FILE + "'];" +
+    "for(i=0;i<7;i++){for(n=0;n<names.length;n++){try{f=p.join(b,names[n]);if(fs.existsSync(f)){require(f);return;}}catch(e){}}b=p.join(b,'..');}" +
+    "try{for(n=0;n<names.length;n++){f=p.join(process.resourcesPath||'','app.asar',names[n]);if(fs.existsSync(f)){require(f);return;}}}catch(e){}" +
     '}catch(e){}})();\n';
 }
 
@@ -387,7 +496,11 @@ function scanForApps(root) {
 
 function detectApps() {
   const platform = process.platform;
-  let list = platform === 'win32' ? findWindowsApps() : platform === 'darwin' ? findMacApps() : findLinuxApps();
+  // Tests and portable tools can restrict discovery to RTL_UNIVERSAL_SCAN_DIRS.
+  // Without this, a patch-all test on a real machine would modify the user's
+  // installed apps that happen to be Electron applications.
+  const onlyCustom = process.env.RTL_UNIVERSAL_DISABLE_DEFAULT_SCAN === '1';
+  let list = onlyCustom ? [] : platform === 'win32' ? findWindowsApps() : platform === 'darwin' ? findMacApps() : findLinuxApps();
 
   // مسیرهای اضافی (نصب‌های غیرمعمول، حالت portable، یا تست خودکار)
   for (const extra of extraScanRoots()) {
@@ -473,7 +586,8 @@ const STRONG_HINT_RE = /BrowserWindow|\bapp\.(whenReady|on|quit|requestSingleIns
 
 function findTargetScripts(workDir, manifestMain, allowUnverified) {
   const files = walkScripts(workDir).filter((f) =>
-    f.rel !== HOOK_FILE && f.rel !== ENGINE_FILE && !/preload/i.test(path.basename(f.full))
+    f.rel !== HOOK_FILE && f.rel !== LEGACY_HOOK_FILE && f.rel !== ENGINE_FILE &&
+    !/preload/i.test(path.basename(f.full))
   );
   const strong = [];
   const weak = [];
@@ -529,6 +643,49 @@ function isPatched(asarPath) {
   try {
     const { header } = asar.readHeader(asarPath);
     return !!(header.files && header.files[ENGINE_FILE]);
+  } catch (e) {
+    return false;
+  }
+}
+
+/* Read one small packed ASAR entry without loading the whole app.asar. */
+function readAsarEntry(asarPath, relPath) {
+  const { header, headerSize } = asar.readHeader(asarPath);
+  const entry = header.files && header.files[relPath];
+  if (!entry || entry.files || entry.link) return null;
+  if (entry.unpacked) {
+    try { return fs.readFileSync(path.join(asarPath + '.unpacked', relPath)); }
+    catch (e) { return null; }
+  }
+  const size = Number(entry.size);
+  const offset = Number(entry.offset);
+  if (!Number.isSafeInteger(size) || size < 0 || size > 4 * 1024 * 1024 ||
+      !Number.isSafeInteger(offset) || offset < 0) return null;
+  const fd = fs.openSync(asarPath, 'r');
+  try {
+    const result = Buffer.alloc(size);
+    const start = 8 + headerSize + offset;
+    let read = 0;
+    while (read < size) {
+      const count = fs.readSync(fd, result, read, size - read, start + read);
+      if (!count) return null;
+      read += count;
+    }
+    return result;
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/* A green "patched" badge only means runtime files exist. Compare both the
+ * engine and hook bytes so a newly shipped build can flag either one as stale. */
+function isPatchCurrent(asarPath) {
+  try {
+    const embeddedEngine = readAsarEntry(asarPath, ENGINE_FILE);
+    const embeddedHook = readAsarEntry(asarPath, HOOK_FILE);
+    if (!embeddedEngine || !embeddedHook) return false;
+    return embeddedEngine.equals(fs.readFileSync(ENGINE_PATH)) &&
+      embeddedHook.equals(Buffer.from(HOOK_SOURCE, 'utf8'));
   } catch (e) {
     return false;
   }
@@ -609,6 +766,9 @@ function patchApp(inputPath, options) {
     }
 
     // 1) Runtime files inside the asar
+    // A previous patch used rtl-universal.js. Remove it before writing the .cjs
+    // hook so an ESM-typed app cannot keep failing on the old extension.
+    try { fs.rmSync(path.join(workDir, LEGACY_HOOK_FILE), { force: true }); } catch (e) { /* ignore */ }
     fs.copyFileSync(ENGINE_PATH, path.join(workDir, ENGINE_FILE));
     fs.writeFileSync(path.join(workDir, HOOK_FILE), HOOK_SOURCE, 'utf8');
     const config = {
@@ -708,7 +868,7 @@ function unpatchApp(inputPath) {
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rtl-universal-un-'));
     try {
       const extracted = asar.extractAll(asarPath, workDir);
-      for (const name of [HOOK_FILE, ENGINE_FILE, CONFIG_FILE, CSS_FILE, INJECTED_FILE]) {
+      for (const name of [HOOK_FILE, LEGACY_HOOK_FILE, ENGINE_FILE, CONFIG_FILE, CSS_FILE, INJECTED_FILE]) {
         try { fs.rmSync(path.join(workDir, name), { force: true }); } catch (e) { /* ignore */ }
       }
       for (const s of walkScripts(workDir)) {
@@ -790,7 +950,7 @@ app.asar.rtl-backup ساخته می‌شود و --unpatch آن را برمی‌�
 
 function formatCandidate(c, i) {
   const version = c.version ? ' v' + c.version : '';
-  const patched = isPatched(c.asar) ? '  [پچ‌شده]' : '';
+  const patched = !isPatched(c.asar) ? '' : isPatchCurrent(c.asar) ? '  [پچ‌شده]' : '  [نیازمند به‌روزرسانی]';
   const exe = c.launcher ? '\n      ' + c.launcher : '';
   return '  ' + String(i + 1).padStart(2) + '. ' + c.name + version + patched + '\n      ' + c.asar + exe;
 }
@@ -809,9 +969,13 @@ async function main() {
     if (!args.app && args._[0]) args.app = args._[0];
     const target = args.app ? resolveTarget(args.app) : null;
     if (!target) { console.error('مسیر برنامه مشخص نشد. از --app استفاده کن.'); process.exitCode = 2; return; }
-    out(isPatched(target.asar)
-      ? '✅ این برنامه پچ شده است: ' + target.asar
-      : '⚪ این برنامه پچ نشده است: ' + target.asar);
+    const patched = isPatched(target.asar);
+    const current = patched && isPatchCurrent(target.asar);
+    out(!patched
+      ? '⚪ این برنامه پچ نشده است: ' + target.asar
+      : current
+        ? '✅ برنامه پچ شده و موتور آن به‌روز است: ' + target.asar
+        : '⚠️ پچ وجود دارد، اما موتور قدیمی است؛ دوباره پچ کن: ' + target.asar);
     return;
   }
 
@@ -904,14 +1068,17 @@ module.exports = {
   patchApp,
   unpatchApp,
   isPatched,
+  isPatchCurrent,
   findTargetScripts,
   insertHook,
   stripHook,
   friendlyFsError,
   HOOK_FILE,
+  LEGACY_HOOK_FILE,
   ENGINE_FILE,
   CONFIG_FILE,
   CSS_FILE,
+  HOOK_SOURCE,
   BACKUP_SUFFIX
 };
 

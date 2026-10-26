@@ -39,11 +39,11 @@ npm ci
 
 در صورت نیاز می‌توان مسیر دیگری را با متغیر محیطی `RTL_CHROME_EXTENSION_KEY` تعیین کرد. کلید خصوصی را در مخزن، ZIP عمومی یا پیام‌رسان قرار ندهید؛ برای حفظ شناسه‌ی همان CRX، کلید را به‌صورت امن پشتیبان‌گیری کنید. CRX محلی، انتشار Chrome Web Store یا امضای فروشگاه را انجام نمی‌دهد؛ انتشار عمومی به فرایند فروشگاه نیاز دارد.
 
-فایل Firefox با پسوند `.xpi` تولید می‌شود، اما builder محلی آن را در AMO امضا نمی‌کند. برای بسته‌ی قابل‌انتشار از `npm run sign:firefox` همراه با اعتبارنامه‌های AMO استفاده کنید؛ امضا یا submission بخشی از ساخت عادی نیست.
+نسخه‌ی عمومی `1.0.0` افزونه‌ی Firefox در صفحه‌ی رسمی [Firefox Add-ons (AMO)](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/) منتشر شده و برای نصب معمول از همان صفحه استفاده کنید. فایل `.xpi` محلی که builder تولید می‌کند امضای AMO ندارد و فقط برای آزمون است. برای نسخه‌ی انتشار تازه، `npm run sign:firefox` را با اعتبارنامه‌های AMO اجرا کنید؛ امضا یا submission بخشی از ساخت عادی نیست.
 
 ### Windows portable
 
-`npm run build:win` خروجی‌های نسخه‌دار را دوباره می‌سازد، کد GUI را bundle می‌کند، Node.js رسمی Windows را دریافت می‌کند و یک ZIP در `release/windows/` می‌سازد. برای استفاده، ZIP را استخراج و `Start.bat` را اجرا کنید. فایل‌های launcher در مخزن باید ASCII و CRLF بمانند؛ آزمون‌های `test/launchers.test.js` و `test/windows.test.js` این قراردادها و مسیرهای آن‌ها را بررسی می‌کنند.
+`npm run build:win` خروجی‌های نسخه‌دار را دوباره می‌سازد، کد GUI را bundle می‌کند، Node.js رسمی Windows را دریافت می‌کند و یک ZIP در `release/windows/` می‌سازد. برای استفاده، ZIP را استخراج و `Start.bat` را اجرا کنید. اگر اپ هدف در `Program Files` نصب شده، پنل را با دسترسی Administrator اجرا کنید؛ برنامه‌ی هدف را هم پیش از پچ کاملاً ببندید. پنل تازه پچ‌های قدیمی را «نیازمند به‌روزرسانی» نشان می‌دهد و دکمه‌ی به‌روزرسانی ارائه می‌کند. فایل‌های launcher در مخزن باید ASCII و CRLF بمانند؛ آزمون‌های `test/launchers.test.js` و `test/windows.test.js` این قراردادها و مسیرهای آن‌ها را بررسی می‌کنند.
 
 ### آزمون‌ها و lint
 
@@ -94,11 +94,11 @@ The local Chrome CRX builder uses a persistent RSA key. The default private-key 
 
 Set `RTL_CHROME_EXTENSION_KEY` to use another path. Never place the private key in the repository, a public ZIP, or a messaging service. Back it up securely if the same CRX identity must be retained. A locally packed CRX does not publish or sign the extension through the Chrome Web Store; public distribution requires the store process.
 
-The Firefox `.xpi` is generated locally but is not signed by AMO. For a release-signed package, run `npm run sign:firefox` with AMO credentials; signing and submission are not part of the normal build.
+The public `1.0.0` Firefox extension is available from the official [Firefox Add-ons (AMO) listing](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/); use that page for a normal install. The locally generated `.xpi` is unsigned and intended only for testing. For a new signed release, run `npm run sign:firefox` with AMO credentials; signing and submission are not part of the normal build.
 
 ### Portable Windows package
 
-`npm run build:win` rebuilds versioned artifacts, bundles the GUI, downloads the official Windows Node.js runtime, and creates a ZIP under `release/windows/`. Extract the ZIP and run `Start.bat`. Keep repository launcher files ASCII and CRLF; `test/launchers.test.js` and `test/windows.test.js` validate those contracts and the referenced paths.
+`npm run build:win` rebuilds versioned artifacts, bundles the GUI, downloads the official Windows Node.js runtime, and creates a ZIP under `release/windows/`. Extract the ZIP and run `Start.bat`. Run the Control Panel as Administrator when the target app is under `Program Files`, and fully close the target app before patching. The updated panel marks stale embedded engines as needing an update and offers an Update action. Keep repository launcher files ASCII and CRLF; `test/launchers.test.js` and `test/windows.test.js` validate those contracts and the referenced paths.
 
 ### Tests and lint
 

@@ -11,10 +11,12 @@
 
 - تشخیص هوشمند جهت هر پیام یا بلوک، به‌علاوه‌ی حالت اجباری RTL و LTR.
 - پشتیبانی از محتوای پویا و به‌روزرسانی تدریجی صفحه با `MutationObserver`؛ پشتیبانی best-effort از Shadow DOM باز.
-- نگه‌داشتن بلوک‌های کد، ترمینال و ریاضی در جهت مناسب خود؛ جهت‌دهی خودکار کادرهای متنی.
-- افزونه‌های Chrome و Firefox با فهرست سایت‌های آماده، رابط فارسی/انگلیسی و پیوندهای مستقیم GitHub و Telegram سازنده.
+- نگه‌داشتن بلوک‌های کد، ترمینال و ریاضی در جهت مناسب خود؛ جهت‌دهی خودکار کادرهای متنی، از جمله کادرهای چت `contenteditable` مانند composer فری‌باف.
+- افزونه‌های Chrome و Firefox با فهرست سایت‌های آماده، رابط فارسی/انگلیسی و پیوندهای GitHub، Telegram و صفحه‌ی رسمی Firefox Add-ons (AMO).
 - افزودن سایت دلخواه در افزونه‌های Chrome و Firefox؛ مجوز فقط پس از اقدام صریح کاربر و فقط برای میزبان HTTPS انتخاب‌شده درخواست می‌شود.
 - افزونه‌ی VS Code و ویرایشگرهای هم‌خانواده، پچر اپ‌های Electron، پنل کنترل محلی، userscript و دموی مستقل.
+- پچر سازگار با برنامه‌های Electronی که `"type": "module"` دارند (هُک `.cjs`) و تشخیص خودکار پچ قدیمی.
+- آیکون چندسایز و Version Info فایل اجرایی ویندوز از لوگوی CyrusAsha.
 
 ### وب‌سایت‌های آماده در افزونه‌های مرورگر
 
@@ -27,6 +29,10 @@
 - برای ساخت پوشه‌ی توسعه از سورس، `npm run build:browser` اجرا و در **Load unpacked** مسیر `release/browser/chrome-unpacked` را انتخاب کنید. آرشیو کامل پروژه عمداً این پوشه‌ی unpacked را شامل نمی‌شود؛ بسته‌ی انتشار Chrome همچنان CRX packed است.
 - پوشه‌ی `browser-extension` (سورس) و پوشه‌ی والد `release/browser` فایل `manifest.json` در ریشه ندارند؛ انتخاب آن‌ها باعث خطای **Manifest file is missing or unreadable** می‌شود.
 - در Edge، **Pack extension** برای ساخت CRX است، نه نصب CRX موجود. اگر می‌خواهید بسته‌ی تازه بسازید، ریشه‌ی `release/browser/chrome-unpacked` را بدهید. برای حفظ شناسه‌ی CRX قبلی باید همان کلید PEM خصوصی را هم انتخاب کنید؛ بدون آن Edge کلید تازه و شناسه‌ی دیگری می‌سازد. CRX نسخه‌دار پروژه از پیش packed است و برای نصبش نیازی به Pack extension نیست.
+
+### نصب افزونه‌ی Firefox
+
+برای نصب عادی Firefox، از صفحه‌ی رسمی [Firefox Add-ons (AMO)](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/) استفاده کنید؛ نسخه‌ی عمومی صفحه `1.0.0` است. XPI محلی ساخته‌شده در این پروژه امضای AMO ندارد و فقط برای آزمون/توسعه است.
 
 ### افزودن سایت دلخواه در Chrome و Firefox
 
@@ -79,12 +85,20 @@ npm run lint:firefox
 
 - `release/browser/CyrusAsha_UniversalRTL-1.0.0-Chrome.crx` — افزونه‌ی Chrome به‌شکل **CRX3 بسته‌بندی‌شده**؛ کلید امضای محلی خارج از مخزن نگهداری می‌شود.
 - `release/browser/CyrusAsha_UniversalRTL-1.0.0-Chrome.zip` — ZIP افزونه برای بارگذاری در فروشگاه Chrome/Edge.
-- `release/browser/CyrusAsha_UniversalRTL-1.0.0-Firefox.xpi` — بسته‌ی Firefox؛ XPI ساخته‌شده هنوز امضای AMO ندارد.
+- `release/browser/CyrusAsha_UniversalRTL-1.0.0-Firefox.xpi` — XPI محلی Firefox برای آزمون، بدون امضای AMO؛ نصب عادی از [صفحه‌ی رسمی Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/).
 - `release/cyrusasha.universalrtl-1.0.0.vsix` — افزونه‌ی VS Code.
 - `release/rtl-universal.user.js` — userscript برای مدیران userscript سازگار.
 - `release/windows/` — خروجی Windows قابل‌حمل، در صورت اجرای `npm run build:win`.
 
-پوشه‌های `chrome-unpacked` و `firefox-unpacked` خروجی‌های توسعه و lint هستند؛ CRX منتشرشده فایل packed است. ساخت CRX محلی جایگزین انتشار/امضای Chrome Web Store نیست. برای نصب عمومی در Firefox، XPI باید از طریق AMO امضا شود.
+برای پچ برنامه‌ی Electron نصب‌شده در `Program Files`، برنامه‌ی هدف را کاملاً ببندید و پنل portable را با **Run as administrator** اجرا کنید. پنل تازه پچ قدیمی را با وضعیت «نیازمند به‌روزرسانی» مشخص می‌کند؛ پس از پچ موفق، برنامه را دوباره باز کنید.
+
+### فری‌باف، Codebuff و اپ‌های `type: module`
+
+نسخه‌های تازه‌ی Freebuff (برای نمونه `0.0.192`) در `package.json` خود `"type": "module"` دارند و نقطه‌ی ورودشان `electron/main.cjs` است. پچر هُک را با نام `rtl-universal.cjs` می‌نویسد و از همان فایل `.cjs` با `require` بارگذاری می‌کند؛ بنابراین خطای ESM رخ نمی‌دهد. اگر پنل برای Freebuff وضعیت **«نیازمند به‌روزرسانی»** نشان داد، برنامه را ببندید و «به‌روزرسانی پچ» را بزنید.
+
+کادر ورودی Freebuff یک `contenteditable` با کلاس `composer-input` است، نه `textarea`؛ موتور جهت این کادرها را هم از متن تایپ‌شده تشخیص می‌دهد و `dir` را روی همان عنصر می‌گذارد. برای عیب‌یابی، `diagnose-freebuff.bat` را با Freebuff بسته اجرا کنید تا لاگ `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl` ساخته شود.
+
+پوشه‌های `chrome-unpacked` و `firefox-unpacked` خروجی‌های توسعه و lint هستند؛ CRX منتشرشده فایل packed است. ساخت CRX محلی جایگزین انتشار/امضای Chrome Web Store نیست. صفحه‌ی عمومی Firefox Add-ons برای نسخه‌ی `1.0.0` در [AMO](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/) قرار دارد؛ XPI محلی بدون امضا و فقط برای آزمون است.
 
 ### Git و GitHub
 
@@ -111,10 +125,12 @@ npm run lint:firefox
 
 - Per-message or per-block smart direction, plus forced RTL and LTR modes.
 - Handles dynamic and streaming page updates with `MutationObserver`; best-effort support for open Shadow DOM roots.
-- Preserves code, terminal, and math regions; automatically sets direction for text inputs.
-- Chrome and Firefox extensions with a built-in site list, Persian/English UI, and direct GitHub/Telegram links to the developer.
+- Preserves code, terminal, and math regions; automatically sets direction for text inputs, including `contenteditable` chat composers such as Freebuff's.
+- Chrome and Firefox extensions with a built-in site list, Persian/English UI, and links to GitHub, Telegram, and the official Firefox Add-ons (AMO) listing.
 - Custom sites in the Chrome and Firefox extensions. A host permission is requested only after an explicit user action and only for the selected HTTPS host.
 - A VS Code-family extension, Electron app patcher, local control panel, userscript, and standalone demo.
+- Patcher support for Electron apps that declare `"type": "module"` (a `.cjs` hook) and detection of outdated patches.
+- Multi-size Windows executable icon and version metadata generated from the CyrusAsha logo.
 
 ### Built-in browser sites
 
@@ -127,6 +143,10 @@ The browser list is generated from `browser-extension/sites.json` and contains 2
 - To generate a development folder from source, run `npm run build:browser`, then select `release/browser/chrome-unpacked` with **Load unpacked**. The full-project archive intentionally omits this unpacked folder; the Chrome release package remains a packed CRX.
 - The `browser-extension` source folder and the parent `release/browser` folder do not have a root-level `manifest.json`; selecting either causes **Manifest file is missing or unreadable**.
 - In Edge, **Pack extension** creates a CRX; it does not install an existing CRX. If you need to build a new package, use `release/browser/chrome-unpacked` as the root. To preserve an existing CRX ID, you must also provide its original private PEM key; without it, Edge creates a new key and a different ID. The versioned CRX in this project is already packed, so it does not need to be repacked before installation.
+
+### Install the Firefox extension
+
+For a normal Firefox installation, use the official [Firefox Add-ons (AMO) listing](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/); the public listing is version `1.0.0`. The locally generated XPI is not AMO-signed and is intended only for testing/development.
 
 ### Add a custom site in Chrome or Firefox
 
@@ -179,12 +199,20 @@ Build the portable Windows package with `npm run build:win`. That build needs an
 
 - `release/browser/CyrusAsha_UniversalRTL-1.0.0-Chrome.crx` — a **packed CRX3** Chrome extension; its local signing key is kept outside the repository.
 - `release/browser/CyrusAsha_UniversalRTL-1.0.0-Chrome.zip` — Chrome/Edge store-upload ZIP.
-- `release/browser/CyrusAsha_UniversalRTL-1.0.0-Firefox.xpi` — Firefox package; the generated XPI is not yet signed by AMO.
+- `release/browser/CyrusAsha_UniversalRTL-1.0.0-Firefox.xpi` — local Firefox test XPI, not AMO-signed; use the [official Firefox Add-ons listing](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/) for a normal install.
 - `release/cyrusasha.universalrtl-1.0.0.vsix` — VS Code extension package.
 - `release/rtl-universal.user.js` — userscript for a compatible userscript manager.
 - `release/windows/` — portable Windows output, after running `npm run build:win`.
 
-The `chrome-unpacked` and `firefox-unpacked` directories are development/lint outputs; the release CRX is packed. A locally generated CRX does not replace Chrome Web Store publication/signing. A Firefox XPI intended for normal release installation must be signed through AMO.
+To patch an Electron app installed under `Program Files`, fully close the target app and run the portable Control Panel with **Run as administrator**. The updated panel flags older patches as needing an update; reopen the app after a successful patch.
+
+### Freebuff, Codebuff, and `type: module` apps
+
+Recent Freebuff builds (for example `0.0.192`) declare `"type": "module"` and use `electron/main.cjs` as their entry point. The patcher writes the hook as `rtl-universal.cjs` and loads it with `require` from that `.cjs` entry, so the ESM loader error no longer occurs. If the panel reports **needs update** for Freebuff, close the app and click **Update patch**.
+
+Freebuff's composer is a `contenteditable` element with the `composer-input` class, not a `textarea`. The engine now detects direction from the typed text for such editors and sets `dir` on the element. To diagnose a remaining issue, run `diagnose-freebuff.bat` with Freebuff closed; it writes `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl`.
+
+The `chrome-unpacked` and `firefox-unpacked` directories are development/lint outputs; the release CRX is packed. A locally generated CRX does not replace Chrome Web Store publication/signing. The public Firefox Add-ons listing is available at [AMO](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/); the locally generated XPI remains unsigned and is only for testing.
 
 ### Git and GitHub
 

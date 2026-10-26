@@ -44,7 +44,7 @@ Manifest از `storage` و `scripting` استفاده می‌کند؛ `optional_
 ### محیط‌های دیگر
 
 - **VS Code و فورک‌ها:** `vscode-extension/extension.js` تنظیمات و فرمان‌ها را می‌خواند و یک بلوک علامت‌گذاری‌شده به فایل Workbench محلی اضافه می‌کند. نسخه‌ی اولیه‌ی فایل پشتیبان می‌گیرد؛ افزونه می‌تواند پس از جایگزین‌شدن فایل در به‌روزرسانی، پچ را دوباره اعمال کند. حذف/غیرفعال‌سازی بلوک را از پشتیبان برمی‌گرداند یا در صورت نبود پشتیبان آن را جداگانه پاک می‌کند.
-- **برنامه‌های Electron:** `src/patcher/patch-electron.js` مسیر `app.asar` را پیدا می‌کند، ساختار اصلی را بررسی می‌کند، فایل موتور و hook را به آرشیو اضافه و یک نسخه‌ی پشتیبان کنار فایل می‌سازد. GUI و CLI از همین patcher استفاده می‌کنند.
+- **برنامه‌های Electron:** `src/patcher/patch-electron.js` مسیر `app.asar` را پیدا می‌کند، ساختار اصلی را بررسی می‌کند، فایل موتور و hook را به آرشیو اضافه و یک نسخه‌ی پشتیبان کنار فایل می‌سازد. GUI و CLI از همین patcher استفاده می‌کنند. پنل بایت‌های موتور تعبیه‌شده را با build فعلی مقایسه می‌کند؛ پچ قدیمی با وضعیت «نیازمند به‌روزرسانی» و دکمه‌ی به‌روزرسانی نشان داده می‌شود.
 - **پنل کنترل:** `src/gui/server.js` یک HTTP server محلی و رابط فارسی/انگلیسی را اجرا می‌کند؛ مسیر پیش‌فرض `127.0.0.1:4477` است. تنظیمات آن در `~/.rtl-universal/config.json` (یا مسیر `RTL_UNIVERSAL_HOME`) نگهداری می‌شوند. سرور برای مدیریت فایل‌های نصب‌شده به دسترسی فایل‌سیستم محلی نیاز دارد.
 - **خروجی‌های سبک وب:** `scripts/build-assets.js` یک userscript، bookmarklet، snippet کنسول و صفحه‌ی demo می‌سازد؛ demo از قالب HTML و همان موتور تولید می‌شود.
 
@@ -111,7 +111,7 @@ A custom host does not include its subdomains; add and approve each host separat
 ### Other environments
 
 - **VS Code and forks:** `vscode-extension/extension.js` reads settings and commands, then appends a marked block to the local Workbench bundle. It backs up the original file; after an update replaces the bundle, the extension can apply the patch again. Disable/uninstall restores the backup or surgically removes the block when no backup is available.
-- **Electron apps:** `src/patcher/patch-electron.js` resolves `app.asar`, checks the application structure, adds the engine and hook, and creates a sibling backup. The GUI and CLI use this patcher.
+- **Electron apps:** `src/patcher/patch-electron.js` resolves `app.asar`, checks the application structure, adds the engine and hook, and creates a sibling backup. The GUI and CLI use this patcher. The panel compares the embedded engine bytes with the current build; stale patches are marked as needing an update and get an Update action.
 - **Control panel:** `src/gui/server.js` runs a local HTTP server and a Persian/English UI; its default address is `127.0.0.1:4477`. Settings are stored in `~/.rtl-universal/config.json` (or `RTL_UNIVERSAL_HOME`). Managing installed files requires local filesystem access.
 - **Web assets:** `scripts/build-assets.js` creates a userscript, bookmarklet, console snippet, and demo page. The demo is assembled from an HTML template and the same engine.
 

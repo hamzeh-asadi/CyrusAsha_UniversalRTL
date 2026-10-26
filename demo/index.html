@@ -330,7 +330,7 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
   var DEFAULT_CONFIG = {
     enabled: true,
     mode: 'smart',            // 'smart' | 'rtl' | 'ltr'
-    inputs: true,             // auto-direction for text inputs / textareas
+    inputs: true,             // auto-direction for text inputs, textareas and contenteditable chat composers
     monacoChatInput: true,    // best-effort RTL for Monaco chat composers (VS Code family)
     shadows: true,            // pierce open shadow roots
     containerSelector: [
@@ -482,6 +482,17 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
 
   var TERMINAL_CLASS_RE = /(^|[\s_-])(xterm|terminal|shell|console|repl)([\s_-]|$)/i;
 
+  /* کادرهای چت contenteditable (مثل Freebuff) یک div قابل‌ویرایش‌اند، نه
+   * textarea. این سلکتور فقط همان کادر پیام را هدف می‌گیرد؛ ویرایشگرهای
+   * کد/فایل و سایر نواحی قابل‌ویرایش دست‌نخورده می‌مانند. */
+  var COMPOSER_SELECTOR = [
+    '.composer-input',
+    '[data-composer-input]',
+    '.composer [contenteditable="true"]',
+    '.chat-composer [contenteditable="true"]',
+    '[data-chat-composer] [contenteditable="true"]'
+  ].join(',');
+
   // Message-level containers that should receive `dir` as a whole (better typography).
   var TIER1_TOKEN_RE = /(^|[\s_-])(markdown|prose|rendered-markdown|chat-markdown-part|md-content|message-content|msg-content|bubble-content|response-content|answer-content|chat-message-content|font-claude-message|ds-markdown)([\s_-]|$)/i;
 
@@ -493,8 +504,19 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
 
   /* آیا این المان و «تمام فرزندانش» باید نادیده گرفته شوند؟
    * True یعنی: کد/ترمینال است یا data-rtl-skip دارد یا با excludeSelector جور است. */
+  function isComposerEditor(el) {
+    if (!el || el.nodeType !== 1) return false;
+    var editable = el.isContentEditable ||
+      (el.getAttribute && el.getAttribute('contenteditable') !== null &&
+        el.getAttribute('contenteditable') !== 'false');
+    if (!editable) return false;
+    try { return !!(el.matches && el.matches(COMPOSER_SELECTOR)); } catch (e) { return false; }
+  }
+
   function shouldSkipSubtree(el) {
     if (!el || el.nodeType !== 1) return false;
+    // The composer root is handled separately; never direction its inner lines.
+    if (isComposerEditor(el)) return true;
     if (SKIP_TAGS[el.tagName]) return true;
     if (el.hasAttribute && el.hasAttribute('data-rtl-skip')) return true;
     if (TERMINAL_CLASS_RE.test(classString(el))) return true;
@@ -624,8 +646,13 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
    * ========================================================================== */
   function applyDirection(el, dir) {
     if (!dir) return false;
-    // Respect author-provided direction attributes (only override our own).
-    if (el.hasAttribute('dir') && !el.hasAttribute('data-rtl-dir')) return false;
+    // In smart mode, keep an explicit author dir only when it agrees with the
+    // detected text. `dir=auto` and contradictory/stale `dir` values must not
+    // block detection. Forced RTL/LTR is an explicit choice and overrides page dir.
+    var alreadyMarked = el.hasAttribute('data-rtl-dir');
+    var authoredDir = (el.getAttribute('dir') || '').toLowerCase();
+    var forceMode = CFG.mode === 'rtl' || CFG.mode === 'ltr';
+    if (el.hasAttribute('dir') && !alreadyMarked && !forceMode && authoredDir === dir) return false;
     if (el.getAttribute('data-rtl-dir') === dir) return false;
     if (!el.hasAttribute('data-rtl-dir')) {
       el.setAttribute('data-rtl-orig-dir', el.getAttribute('dir') || '');
@@ -719,6 +746,27 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
     }
   }
 
+  /* contenteditable chat composers (Freebuff, some web agents) need direction
+   * on the editable root itself; that is what moves the caret and placeholder.
+   * Empty/neutral composers fall back to dir=auto. */
+  function updateComposerInput(el) {
+    if (!CFG.inputs) return;
+    var text = el.textContent || '';
+    var dir = CFG.mode === 'rtl' ? 'rtl'
+      : CFG.mode === 'ltr' ? 'ltr'
+        : (/\S/.test(text) ? decideDirection(text) : null);
+
+    if (!dir) {
+      if (el.hasAttribute('data-rtl-dir')) restoreElement(el);
+      if (!el.hasAttribute('dir')) {
+        el.setAttribute('dir', 'auto');
+        el.setAttribute('data-rtl-auto', 'dir');
+      }
+      return;
+    }
+    applyDirection(el, dir);
+  }
+
   var monacoSig = new WeakMap();
 
   /* برای کادر چت Monaco: متن داخل .view-lines را می‌خوانیم و اگر فارسی بود
@@ -754,6 +802,12 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
     // Inputs → browser-native auto direction (typing Persian flips the caret side).
     if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
       handleInputElement(el);
+      return;
+    }
+    // contenteditable chat composers (Freebuff and similar) — before the
+    // editable-root guard, which would otherwise leave the caret LTR.
+    if (isComposerEditor(el)) {
+      updateComposerInput(el);
       return;
     }
     // Monaco (IDE) chat composer special case — must run before the exclusion check,
@@ -870,6 +924,15 @@ window.__RTL_UNIVERSAL_CONFIG__ = {"mode":"smart","inputs":true,"monacoChatInput
   function onMutations(mutations) {
     for (var i = 0; i < mutations.length; i++) {
       var m = mutations[i];
+      // Edits inside a contenteditable composer mutate its child text nodes; only
+      // the editable root needs reprocessing (never its inner lines).
+      var targetEl = m.target && (m.target.nodeType === 1 ? m.target : m.target.parentElement);
+      var composer = null;
+      try { composer = targetEl && targetEl.closest ? targetEl.closest(COMPOSER_SELECTOR) : null; } catch (e) { composer = null; }
+      if (composer && isComposerEditor(composer)) {
+        enqueue(composer);
+        continue;
+      }
       if (m.type === 'characterData') {
         var parent = m.target.parentElement;
         if (parent) {

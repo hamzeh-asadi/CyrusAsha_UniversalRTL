@@ -14,7 +14,7 @@
     "patch": "node src/patcher/patch-electron.js",
     "demo": "node scripts/serve-demo.js",
     "build:assets": "node scripts/build-assets.js",
-    "test:all": "node test/engine.test.js && node test/asar.test.js && node test/patcher.test.js && node test/extension.test.js && node test/windows.test.js && node test/launchers.test.js && node scripts/build-browser-extension.js && node test/browser-extension.test.js",
+    "test:all": "node test/engine.test.js && node test/asar.test.js && node test/patcher.test.js && node test/hook-runtime.test.js && node test/extension.test.js && node test/windows.test.js && node test/launchers.test.js && node scripts/build-browser-extension.js && node test/browser-extension.test.js",
     "build": "node scripts/build-assets.js && node vscode-extension/build-vsix.js && node scripts/build-browser-extension.js && node scripts/build-chrome-crx.js",
     "build:browser": "node scripts/build-browser-extension.js",
     "build:chrome-crx": "node scripts/build-chrome-crx.js",
@@ -35,6 +35,8 @@
     "esbuild": "^0.28.2",
     "jsdom": "^26.1.0",
     "playwright": "^1.64.1",
-    "postject": "^1.0.0-alpha.6"
+    "png-to-ico": "^3.0.2",
+    "postject": "^1.0.0-alpha.6",
+    "resedit": "^3.1.0"
   }
 }

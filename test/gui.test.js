@@ -58,6 +58,16 @@ async function makeFakeApps(base) {
   }
 }
 
+async function overwriteEmbeddedEngine(asarPath, engineText) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gui-engine-replace-'));
+  await official.extractAll(asarPath, dir);
+  fs.writeFileSync(path.join(dir, 'rtl-universal-engine.js'), engineText);
+  const replacement = asarPath + '.engine-replacement';
+  await official.createPackage(dir, replacement);
+  if (process.platform === 'win32') await new Promise((resolve) => setTimeout(resolve, 250));
+  fs.renameSync(replacement, asarPath);
+}
+
 (async function main() {
   console.log('\nControl Panel tests (HTTP + browser)\n');
 
@@ -68,6 +78,7 @@ async function makeFakeApps(base) {
   const server = spawn(process.execPath, [path.join(ROOT, 'src', 'gui', 'server.js'), '--port', String(PORT)], {
     env: Object.assign({}, process.env, {
       RTL_UNIVERSAL_SCAN_DIRS: appsDir,
+      RTL_UNIVERSAL_DISABLE_DEFAULT_SCAN: '1',
       RTL_UNIVERSAL_HOME: homeDir,
       RTL_CHROME_EXTENSION_KEY: path.join(homeDir, 'chrome-test-signing.pem'),
       RTL_CHROME_EXTENSION_OUTPUT: path.join(homeDir, 'CyrusAsha_UniversalRTL-1.0.0-Chrome.crx'),
@@ -109,6 +120,7 @@ async function makeFakeApps(base) {
       const after = await api('/api/state');
       const alpha2 = after.apps.find((a) => a.name === 'Alpha Agent');
       assert.strictEqual(alpha2.patched, true);
+      assert.strictEqual(alpha2.patchCurrent, true);
       assert.strictEqual(alpha2.backup, true);
       // Verify asar contents
       const main = official.extractFile(alpha2.asar, 'main.js').toString();
@@ -139,6 +151,36 @@ async function makeFakeApps(base) {
       assert.strictEqual(gamma.ok, false, 'Gamma has no electron main and must not be patched');
       const s = await api('/api/state');
       assert.strictEqual(s.stats.patched, 2);
+    });
+
+    await test('Control Panel detects a patched app carrying an older engine', async () => {
+      const s = await api('/api/state');
+      const beta = s.apps.find((a) => a.name === 'Beta Studio');
+      assert.strictEqual(beta.patchCurrent, true);
+      await overwriteEmbeddedEngine(beta.asar, 'stale engine from an earlier build');
+      const staleState = await api('/api/state');
+      const betaStale = staleState.apps.find((a) => a.name === 'Beta Studio');
+      assert.strictEqual(betaStale.patched, true);
+      assert.strictEqual(betaStale.patchCurrent, false);
+      assert.strictEqual(staleState.stats.patched, 1);
+      assert.strictEqual(staleState.stats.outdated, 1);
+    });
+
+    await test('patch-all updates stale engines even when the app is already marked patched', async () => {
+      const before = await api('/api/state');
+      const beta = before.apps.find((a) => a.name === 'Beta Studio');
+      assert.strictEqual(beta.patchCurrent, false);
+      const result = await api('/api/patch-all', { mode: 'smart' });
+      const betaResult = result.results.find((item) => item.name === 'Beta Studio');
+      assert.ok(betaResult && betaResult.ok, JSON.stringify(betaResult));
+      let after = await api('/api/state');
+      let betaAfter = after.apps.find((a) => a.name === 'Beta Studio');
+      assert.strictEqual(betaAfter.patchCurrent, true);
+      // Leave the test app stale once more so the browser UI's Update button is exercised below.
+      await overwriteEmbeddedEngine(betaAfter.asar, 'stale engine for the UI update test');
+      after = await api('/api/state');
+      betaAfter = after.apps.find((a) => a.name === 'Beta Studio');
+      assert.strictEqual(betaAfter.patchCurrent, false);
     });
 
     await test('settings persist to disk', async () => {
@@ -233,6 +275,32 @@ async function makeFakeApps(base) {
 
     await page.goto(BASE + '/');
     await page.waitForSelector('.app', { timeout: 10000 });
+
+    await test('Control Panel links to the official Firefox Add-ons listing', async () => {
+      const links = page.locator('a[href="https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/"]');
+      assert.strictEqual(await links.count(), 2, 'expected links in the browser-extension card and panel footer');
+      for (const link of await links.all()) {
+        assert.strictEqual(await link.getAttribute('target'), '_blank');
+        assert.strictEqual(await link.getAttribute('rel'), 'noopener noreferrer');
+      }
+    });
+
+    await test('UI offers Update for a stale patch and refreshes the embedded engine', async () => {
+      const card = page.locator('.app', { hasText: 'Beta Studio' });
+      assert.ok((await card.innerText()).includes('نیازمند به‌روزرسانی'));
+      const update = card.locator('button[data-act="patch"]');
+      assert.strictEqual(await update.innerText(), 'به‌روزرسانی پچ');
+      await update.click();
+      await page.waitForFunction(async () => {
+        const response = await fetch('/api/state');
+        const state = await response.json();
+        const beta = state.apps.find((app) => app.name === 'Beta Studio');
+        return beta && beta.patched && beta.patchCurrent;
+      }, null, { timeout: 10000 });
+      await card.locator('.chip.on').waitFor({ timeout: 5000 });
+      assert.ok((await card.innerText()).includes('پچ‌شده'));
+      assert.strictEqual(await card.locator('button[data-act="unpatch"]').count(), 1);
+    });
 
     await test('UI displays the updated CyrusAsha logo in the header', async () => {
       const logo = page.locator('header.topbar img.logo');

@@ -49,6 +49,9 @@ async function makeWindowsStyleApp(base, appName) {
     "const { app, BrowserWindow } = require('electron');\napp.whenReady().then(() => new BrowserWindow({}));\n");
   fs.writeFileSync(path.join(src, 'renderer.js'), 'console.log("ui");\n');
   await official.createPackage(src, path.join(resources, 'app.asar'));
+  // Windows may still hold the write handle that createPackage() just closed;
+  // the patcher's rename-over-existing step would then fail with EPERM.
+  if (process.platform === 'win32') await new Promise((resolve) => setTimeout(resolve, 250));
   return { appRoot, asarPath: path.join(resources, 'app.asar'), exe: path.join(appRoot, appName + '.exe') };
 }
 
@@ -170,6 +173,8 @@ async function makeWindowsStyleApp(base, appName) {
     assert.ok(/copyIfExists\(path\.join\(ROOT, 'release'\), dir, 'release'\)/.test(builder),
       'portable folder must include current install packages');
     assert.ok(/pruneObsoleteReleasePackages/.test(builder), 'old versioned packages must not be shipped');
+    assert.ok(/run this tool as Administrator/.test(builder), 'portable instructions must explain elevation for Program Files');
+    assert.ok(/برنامه‌های داخل Program Files/.test(builder), 'portable Persian instructions must mention protected app installs');
   });
 
   /* ==================================================================== */

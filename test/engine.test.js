@@ -186,10 +186,56 @@ async function test(name, fn) {
     dom.window.close();
   });
 
-  await test('author-provided dir is respected', async () => {
-    const dom = makeDom('<div class="markdown"><p id="x" dir="ltr">این متن فارسی است ولی dir دستی دارد</p></div>');
+  await test('contenteditable chat composer follows Persian/English and restores on disable', async () => {
+    const dom = makeDom(
+      '<div class="composer">' +
+      '<div class="composer-input" id="composer" contenteditable="true" data-composer-input=""></div>' +
+      '</div>'
+    );
+    await wait(80);
+    const composer = dom.window.document.getElementById('composer');
+    assert.strictEqual(dirOf(dom, '#composer'), 'auto', 'empty composer should start with dir=auto');
+
+    composer.innerHTML = '<span id="inner">سلام دنیا، این یک پیام فارسی است</span>';
+    await wait(120);
+    assert.strictEqual(dirOf(dom, '#composer'), 'rtl');
+    assert.strictEqual(markedDirOf(dom, '#composer'), 'rtl');
+    assert.strictEqual(markedDirOf(dom, '#inner'), null, 'inner composer lines must not be directioned separately');
+
+    composer.textContent = 'Hello world, this draft is English';
+    await wait(120);
+    assert.strictEqual(dirOf(dom, '#composer'), 'ltr');
+
+    dom.window.RTLUniversal.disable();
+    assert.strictEqual(dirOf(dom, '#composer'), null);
+    dom.window.close();
+  });
+
+  await test('matching author-provided explicit dir is respected in smart mode', async () => {
+    const dom = makeDom('<div class="markdown"><p id="x" dir="ltr">This paragraph is English and author-marked LTR.</p></div>');
     await wait(80);
     assert.strictEqual(dirOf(dom, '#x'), 'ltr');
+    assert.strictEqual(dom.window.document.getElementById('x').hasAttribute('data-rtl-dir'), false);
+    dom.window.close();
+  });
+
+  await test('smart mode corrects a contradictory explicit dir and restores it on disable', async () => {
+    const dom = makeDom('<div class="markdown"><p id="x" dir="ltr">سلام دنیا، این یک پیام فارسی است.</p></div>');
+    await wait(80);
+    assert.strictEqual(dirOf(dom, '#x'), 'rtl');
+    assert.strictEqual(dom.window.document.getElementById('x').getAttribute('data-rtl-orig-dir'), 'ltr');
+    dom.window.RTLUniversal.disable();
+    assert.strictEqual(dirOf(dom, '#x'), 'ltr');
+    dom.window.close();
+  });
+
+  await test('smart mode corrects dir=auto from actual Persian text and restores it on disable', async () => {
+    const dom = makeDom('<div class="markdown"><p id="x" dir="auto">سلام دنیا، این یک پیام فارسی است.</p></div>');
+    await wait(80);
+    assert.strictEqual(dirOf(dom, '#x'), 'rtl');
+    assert.strictEqual(dom.window.document.getElementById('x').getAttribute('data-rtl-orig-dir'), 'auto');
+    dom.window.RTLUniversal.disable();
+    assert.strictEqual(dirOf(dom, '#x'), 'auto');
     dom.window.close();
   });
 
@@ -217,10 +263,21 @@ async function test(name, fn) {
   });
 
   /* ---------------- Modes & lifecycle ---------------- */
-  await test('mode "rtl" forces Persian-less message containers to rtl', async () => {
-    const dom = makeDom('<div class="markdown"><p>English only text here</p></div>', { mode: 'rtl' });
+  await test('mode "rtl" overrides an explicit page dir and restores it on disable', async () => {
+    const dom = makeDom('<div class="markdown" id="container" dir="ltr"><p>English only text here</p></div>', { mode: 'rtl' });
     await wait(80);
-    assert.strictEqual(dirOf(dom, '.markdown'), 'rtl');
+    assert.strictEqual(dirOf(dom, '#container'), 'rtl');
+    assert.strictEqual(dom.window.document.getElementById('container').getAttribute('data-rtl-orig-dir'), 'ltr');
+    dom.window.RTLUniversal.disable();
+    assert.strictEqual(dirOf(dom, '#container'), 'ltr');
+    dom.window.close();
+  });
+
+  await test('mode "ltr" overrides an explicit page dir', async () => {
+    const dom = makeDom('<div class="markdown" id="container" dir="rtl"><p>متن فارسی</p></div>', { mode: 'ltr' });
+    await wait(80);
+    assert.strictEqual(dirOf(dom, '#container'), 'ltr');
+    assert.strictEqual(dom.window.document.getElementById('container').getAttribute('data-rtl-orig-dir'), 'rtl');
     dom.window.close();
   });
 

@@ -41,7 +41,8 @@
       removedCustom: 'سایت حذف شد و مجوز دسترسی لغو شد.',
       removedPermissionLeft: 'سایت از فهرست افزونه حذف شد، اما مجوز مرورگر لغو نشد؛ دسترسی سایت را در تنظیمات افزونه بررسی کن.',
       tooManySites: 'حداکثر ۵۰ سایت دلخواه می‌توان افزود.',
-      contactTitle: 'راه‌های ارتباط با سازنده',
+      contactTitle: 'پیوندهای سازنده و افزونه',
+      firefoxAddons: 'افزونه‌ی Firefox در AMO',
       privacy: 'متن صفحه فقط برای تشخیص جهت روی دستگاه پردازش می‌شود؛ هیچ گفت‌وگویی ذخیره یا ارسال نمی‌شود.',
       saved: 'تنظیم ذخیره شد',
       failed: 'ذخیره‌ی تنظیم ناموفق بود؛ دوباره تلاش کن.'
@@ -73,7 +74,8 @@
       removedCustom: 'Site removed and its host permission revoked.',
       removedPermissionLeft: 'The site was removed from the list, but the browser permission could not be revoked. Review the extension’s site access settings.',
       tooManySites: 'You can add up to 50 custom sites.',
-      contactTitle: 'Contact the developer',
+      contactTitle: 'Developer and add-on links',
+      firefoxAddons: 'Firefox Add-ons',
       privacy: 'Page text is processed locally only to determine direction; conversations are never stored or sent.',
       saved: 'Settings saved',
       failed: 'Could not save settings. Please try again.'
