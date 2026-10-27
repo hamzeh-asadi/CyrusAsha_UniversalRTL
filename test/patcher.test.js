@@ -38,12 +38,27 @@ async function pack(src, dest) {
   if (process.platform === 'win32') await new Promise((resolve) => setTimeout(resolve, 250));
 }
 
+/* ساخت پوشه‌ی موقت با ثبت خودکار برای پاک‌سازی: اسکنر پنل زیرپوشه‌های
+ * %LOCALAPPDATA% (که %TEMP% هم داخلش است) را می‌گردد، پس بدون پاک‌سازی هر
+ * اجرای تست چند «اپ جعلی» به لیست پنل اضافه می‌کند. */
+const tempDirs = [];
+function mkTemp(prefix) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+function cleanupTemp() {
+  for (const dir of tempDirs.splice(0)) {
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* ignore */ }
+  }
+}
+
 /* ساخت اپ جعلی. مهم: preload.js نباید هرگز پچ شود و assets دست‌نخورده بماند. */
 async function makeFakeApp(options = {}) {
-  const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-app-'));
+  const appRoot = mkTemp('fake-app-');
   const resources = path.join(appRoot, 'resources');
   fs.mkdirSync(resources, { recursive: true });
-  const src = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-src-'));
+  const src = mkTemp('fake-src-');
   const mainName = options.typeModule ? 'main.cjs' : 'main.js';
   fs.writeFileSync(path.join(src, 'package.json'), JSON.stringify({
     name: 'fake-agent', productName: 'Fake Agent', version: '9.9.9', main: mainName,
@@ -139,7 +154,7 @@ async function makeFakeApp(options = {}) {
   });
 
   await test('distinguishes stale embedded engine or hook from the current build', async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'patch-version-'));
+    const root = mkTemp('patch-version-');
     const staleSrc = path.join(root, 'stale');
     const currentSrc = path.join(root, 'current');
     fs.mkdirSync(staleSrc);
@@ -234,10 +249,10 @@ async function makeFakeApp(options = {}) {
   });
 
   await test('apps without electron main are rejected safely', async () => {
-    const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-bad-'));
+    const appRoot = mkTemp('fake-bad-');
     const resources = path.join(appRoot, 'resources');
     fs.mkdirSync(resources, { recursive: true });
-    const src = fs.mkdtempSync(path.join(os.tmpdir(), 'fake-badsrc-'));
+    const src = mkTemp('fake-badsrc-');
     fs.writeFileSync(path.join(src, 'package.json'), '{"name":"no-electron"}');
     fs.writeFileSync(path.join(src, 'index.js'), 'console.log(1);');
     await pack(src, path.join(resources, 'app.asar'));
@@ -245,6 +260,8 @@ async function makeFakeApp(options = {}) {
     assert.strictEqual(res.ok, false);
     assert.ok(/main-process/.test(res.error));
   });
+
+  cleanupTemp();
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
   if (failed) {

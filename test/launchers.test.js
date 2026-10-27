@@ -64,7 +64,7 @@ const files = launcherFiles();
 /* ====================================================================== */
 test('all launchers are discovered', () => {
   assert.ok(files.length >= 4, 'expected at least 4 launchers, found: ' + files.map((f) => path.relative(ROOT, f)));
-  for (const must of ['start-gui.bat', 'patch.bat', 'diagnose.bat', 'diagnose-freebuff.bat', 'install-shortcut.ps1']) {
+  for (const must of ['start-gui.bat', 'patch.bat', 'diagnose.bat', 'install-shortcut.ps1']) {
     assert.ok(files.some((f) => path.basename(f) === must), 'missing launcher: ' + must);
   }
 });
@@ -164,17 +164,6 @@ test('portable Start.bat template is also ASCII + CRLF', () => {
       assert.ok(buf.startsWith('@echo off'), 'built Start.bat must start with @echo off');
     }
   }
-});
-
-test('Freebuff diagnostic launcher is opt-in, waits for exit, and records to TEMP', () => {
-  const diag = readRaw(path.join(WIN_DIR, 'diagnose-freebuff.bat')).toString('utf8');
-  assert.ok(/set "RTL_UNIVERSAL_DIAGNOSTICS=1"/i.test(diag), 'must opt in to runtime diagnostics');
-  assert.ok(/RTL_UNIVERSAL_DIAGNOSTICS_PATH=%DIAG_FILE%/i.test(diag), 'must use the explicit TEMP log path');
-  assert.ok(/start "" \/wait "%APP_EXE%"/i.test(diag), 'must keep the console open until Freebuff exits');
-  assert.ok(/tasklist/i.test(diag), 'must refuse to launch a second instance');
-  assert.ok(/notepad\.exe/i.test(diag), 'must open the generated log for the user');
-  const builder = fs.readFileSync(path.join(ROOT, 'scripts', 'build-windows-exe.js'), 'utf8');
-  assert.ok(builder.includes("'windows', 'diagnose-freebuff.bat'"), 'portable build must include the diagnostic launcher');
 });
 
 test('control panel launcher documents the portable fallback when Node is missing', () => {

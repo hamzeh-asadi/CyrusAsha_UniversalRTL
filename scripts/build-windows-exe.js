@@ -122,25 +122,105 @@ function unzip(zipPath, destDir) {
   }
 }
 
+/* اندازه‌هایی که ویندوز برای آیکون یک فایل درخواست می‌کند: ۱۶/۳۲ برای لیست و
+ * جزئیات، ۴۸/۹۶/۲۵۶ برای نماهای متوسط/بزرگ/خیلی‌بزرگ و ۲۰/۲۴/۴۰/۶۴/۱۲۸ برای
+ * نمایشگرهای با مقیاس ۱۲۵٪/۱۵۰٪/۲۰۰٪. نبودِ هر اندازه یعنی ویندوز مجبور است
+ * یک فریم دیگر را بزرگ/کوچک کند. */
+const ICON_SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 128, 256];
+const ICON_REQUIRED = ['16x16', '32x32', '48x48', '256x256'];
+
+/* تغییر اندازه با میانگین ناحیه‌ای (box filter) روی پیکسل‌های premultiplied؛
+ * برای کوچک‌کردن‌های زیاد لبه‌های شفاف را سیاه نمی‌کند. */
+function resizeLogo(source, size) {
+  const { PNG } = require('pngjs');
+  const side = Math.min(source.width, source.height);
+  const offX = Math.floor((source.width - side) / 2);
+  const offY = Math.floor((source.height - side) / 2);
+  const dst = new PNG({ width: size, height: size });
+  const scale = side / size;
+  for (let y = 0; y < size; y++) {
+    const y0 = Math.floor(y * scale);
+    const y1 = Math.max(y0 + 1, Math.min(side, Math.ceil((y + 1) * scale)));
+    for (let x = 0; x < size; x++) {
+      const x0 = Math.floor(x * scale);
+      const x1 = Math.max(x0 + 1, Math.min(side, Math.ceil((x + 1) * scale)));
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      let n = 0;
+      for (let sy = y0; sy < y1; sy++) {
+        for (let sx = x0; sx < x1; sx++) {
+          const i = (((sy + offY) * source.width) + sx + offX) << 2;
+          const alpha = source.data[i + 3] / 255;
+          r += source.data[i] * alpha;
+          g += source.data[i + 1] * alpha;
+          b += source.data[i + 2] * alpha;
+          a += alpha;
+          n++;
+        }
+      }
+      const o = ((y * size) + x) << 2;
+      dst.data[o] = a > 0 ? Math.round(r / a) : 0;
+      dst.data[o + 1] = a > 0 ? Math.round(g / a) : 0;
+      dst.data[o + 2] = a > 0 ? Math.round(b / a) : 0;
+      dst.data[o + 3] = n > 0 ? Math.round((a / n) * 255) : 0;
+    }
+  }
+  return dst;
+}
+
 async function makeWindowsIcon() {
   step('ساخت آیکون ویندوز از لوگو');
   const logo = path.join(ROOT, 'assets', 'CyrusAsha_UniversalRTL-logo.png');
   if (!fs.existsSync(logo)) {
-    log('لوگو پیدا نشد؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + logo);
-    return null;
+    // Failing loudly is deliberate: shipping node.exe's icon is the bug this
+    // step exists to prevent, so a missing logo must stop the build.
+    throw new Error('لوگوی برنامه پیدا نشد: ' + logo);
   }
   try {
+    const { PNG } = require('pngjs');
     // png-to-ico is ESM-only; this file is CommonJS.
     const pngToIco = (await import('png-to-ico')).default;
-    const ico = await pngToIco(logo);
+    const source = PNG.sync.read(fs.readFileSync(logo));
+    // آرایه‌ی بافرها: png-to-ico هر تصویر را در اندازه‌ی خودش به یک فریم تبدیل
+    // می‌کند؛ پس هیچ تغییر اندازه‌ی داخلی یا افت کیفیتی رخ نمی‌دهد.
+    const frames = ICON_SIZES.map((size) => PNG.sync.write(resizeLogo(source, size)));
+    const ico = await pngToIco(frames);
     const out = path.join(BUILD, PRODUCT_NAME + '.ico');
     fs.writeFileSync(out, ico);
-    log(PRODUCT_NAME + '.ico → ' + Math.round(ico.length / 1024) + ' KB');
+    if (!ico || ico.length < 1000) throw new Error('ICO output looks empty');
+    log(PRODUCT_NAME + '.ico → ' + Math.round(ico.length / 1024) + ' KB (' + ICON_SIZES.length + ' sizes)');
     return out;
   } catch (e) {
-    log('ساخت آیکون ناموفق بود؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + e.message);
-    return null;
+    throw new Error('ساخت آیکون از لوگو ناموفق بود: ' + e.message);
   }
+}
+
+/* بعد از تزریق بلاب SEA دوباره منابع PE را می‌خوانیم تا مطمئن شویم آیکون
+ * و مشخصات نسخه واقعاً داخل فایل نهایی مانده‌اند (postject آن‌ها را بازنویسی نمی‌کند،
+ * اما این بررسی جلوی تحویل exe با آیکون Node را می‌گیرد). */
+async function verifyWindowsResources(exePath) {
+  const ResEdit = await require('resedit/cjs').load();
+  const base = ResEdit.NtExecutable.from(fs.readFileSync(exePath), { ignoreCert: true });
+  const resources = ResEdit.NtExecutableResource.from(base);
+  const groups = ResEdit.Resource.IconGroupEntry.fromEntries(resources.entries);
+  const sizes = [];
+  for (const group of groups) {
+    for (const icon of group.icons) sizes.push((icon.width || 256) + 'x' + (icon.height || 256));
+  }
+  // چند گروه آیکون (گروه قدیمی node.exe + گروه ما) یعنی ویندوز ممکن است گروه
+  // درست را انتخاب نکند؛ پس exe نهایی باید دقیقاً یک گروه داشته باشد.
+  if (groups.length !== 1) {
+    throw new Error('exe must contain exactly one icon group, found ' + groups.length);
+  }
+  const unique = Array.from(new Set(sizes));
+  for (const need of ICON_REQUIRED) {
+    if (unique.indexOf(need) === -1) {
+      throw new Error('icon group is missing the ' + need + ' frame: ' + unique.join(', '));
+    }
+  }
+  return { sizes: unique, groups: groups.length };
 }
 
 async function getNodeExe() {
@@ -213,16 +293,9 @@ async function writeBaseExecutable(nodeExe, outExe, icoPath) {
 }
 
 async function inject(nodeExe, blobPath, outExe, icoPath) {
-  if (icoPath) {
-    try {
-      await writeBaseExecutable(nodeExe, outExe, icoPath);
-    } catch (e) {
-      log('افزودن آیکون ناموفق بود؛ آیکون پیش‌فرض Node باقی می‌ماند: ' + e.message);
-      fs.copyFileSync(nodeExe, outExe);
-    }
-  } else {
-    fs.copyFileSync(nodeExe, outExe);
-  }
+  // The branded icon is part of the product: never fall back to node.exe's.
+  if (!icoPath) throw new Error('آیکون ویندوز ساخته نشد؛ ساخت متوقف شد');
+  await writeBaseExecutable(nodeExe, outExe, icoPath);
   step('تزریق بلاب داخل node.exe (postject)');
   const res = spawnSync(process.execPath, [
     path.join(ROOT, 'node_modules', 'postject', 'dist', 'cli.js'),
@@ -236,6 +309,8 @@ async function inject(nodeExe, blobPath, outExe, icoPath) {
   fs.readSync(fd, header, 0, 2, 0);
   fs.closeSync(fd);
   if (header.toString() !== 'MZ') throw new Error('output is not a Windows PE executable');
+  const icon = await verifyWindowsResources(outExe);
+  log('آیکون داخل فایل نهایی ✓ (یک گروه، ' + icon.sizes.length + ' اندازه: ' + icon.sizes.join(', ') + ')');
   log(APP_EXE + ' → ' + Math.round(fs.statSync(outExe).size / 1024 / 1024) + ' MB (PE ✓)');
   return outExe;
 }
@@ -280,7 +355,6 @@ function assemblePortable(exePath) {
   copyIfExists(path.join(ROOT, 'release'), dir, 'release');
   copyIfExists(path.join(ROOT, 'LICENSE'), dir, 'LICENSE');
   copyIfExists(path.join(ROOT, 'README.md'), dir, 'README.md');
-  copyIfExists(path.join(ROOT, 'windows', 'diagnose-freebuff.bat'), dir, 'diagnose-freebuff.bat');
 
   // node_modules لازم نیست؛ فقط ابزار ساخت VSIX از tools/zip استفاده می‌کند.
   fs.rmSync(path.join(dir, 'release', 'windows'), { recursive: true, force: true });
@@ -317,13 +391,14 @@ function assemblePortable(exePath) {
     '    برای برنامه‌های داخل Program Files، ابزار را با Administrator اجرا کن',
     '    و قبل از پچ، برنامه‌ی هدف را کامل ببند.',
     '',
-    'Freebuff v0.0.192 runtime diagnosis / عیب‌یابی اجرای Freebuff:',
-    '  EN: Apply the patch from this build while Freebuff is fully closed.',
-    '      Then run diagnose-freebuff.bat, reproduce the issue, and quit.',
-    '      The log is in %TEMP% and contains status/counts only, not chat text.',
-    '  FA: وقتی Freebuff کاملاً بسته است، پچ همین نسخه را اعمال کن؛ سپس',
-    '      diagnose-freebuff.bat را اجرا، مشکل را بازتولید و برنامه را ببند.',
-    '      گزارش در %TEMP% است و فقط وضعیت/شمارنده‌ها را دارد، نه متن گفتگو.',
+    'Icon cache / کش آیکون:',
+    '  EN: If Explorer shows an old icon for the exe (for example the green',
+    '      Node icon) while Properties shows the right one, the shell cache is',
+    '      stale. Extract this ZIP into a folder name you have not used before,',
+    '      or run:  ie4uinit.exe -show',
+    '  FA: اگر Explorer برای exe آیکون قدیمی (مثلاً سبز Node) نشان می‌دهد ولی',
+    '      Properties درست است، کش ویندوز کهنه شده؛ ZIP را در پوشه‌ای با نام',
+    '      تازه باز کن یا این را اجرا کن:  ie4uinit.exe -show',
     '',
     'Firefox extension / افزونه‌ی Firefox:',
     '  https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/',

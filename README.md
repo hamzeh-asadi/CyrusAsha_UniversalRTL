@@ -96,7 +96,9 @@ npm run lint:firefox
 
 نسخه‌های تازه‌ی Freebuff (برای نمونه `0.0.192`) در `package.json` خود `"type": "module"` دارند و نقطه‌ی ورودشان `electron/main.cjs` است. پچر هُک را با نام `rtl-universal.cjs` می‌نویسد و از همان فایل `.cjs` با `require` بارگذاری می‌کند؛ بنابراین خطای ESM رخ نمی‌دهد. اگر پنل برای Freebuff وضعیت **«نیازمند به‌روزرسانی»** نشان داد، برنامه را ببندید و «به‌روزرسانی پچ» را بزنید.
 
-کادر ورودی Freebuff یک `contenteditable` با کلاس `composer-input` است، نه `textarea`؛ موتور جهت این کادرها را هم از متن تایپ‌شده تشخیص می‌دهد و `dir` را روی همان عنصر می‌گذارد. برای عیب‌یابی، `diagnose-freebuff.bat` را با Freebuff بسته اجرا کنید تا لاگ `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl` ساخته شود.
+کادر ورودی Freebuff یک `contenteditable` با کلاس `composer-input` است، نه `textarea`؛ موتور جهت این کادرها را هم از متن تایپ‌شده تشخیص می‌دهد و `dir` را روی همان عنصر می‌گذارد.
+
+پیام‌های دستیار در Freebuff داخل `div.prose` رندر می‌شوند و بعد از بارگذاری صفحه ساخته می‌شوند؛ به همین دلیل موتور علاوه بر MutationObserver یک «پیمایش ظرف‌های پیام» دارد که مستقل از صف، هر بار ظرف‌های پیام را پیدا و جهت‌دهی می‌کند (اگر برنامه خودش `dir` را پاک کند، دوباره اعمال می‌شود). با اجرای هُک با `RTL_UNIVERSAL_DIAGNOSTICS=1` می‌توان لاگ `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl` را گرفت؛ این لاگ فقط شمارنده و نام کلاس دارد، نه متن گفتگو.
 
 پوشه‌های `chrome-unpacked` و `firefox-unpacked` خروجی‌های توسعه و lint هستند؛ CRX منتشرشده فایل packed است. ساخت CRX محلی جایگزین انتشار/امضای Chrome Web Store نیست. صفحه‌ی عمومی Firefox Add-ons برای نسخه‌ی `1.0.0` در [AMO](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/) قرار دارد؛ XPI محلی بدون امضا و فقط برای آزمون است.
 
@@ -210,7 +212,9 @@ To patch an Electron app installed under `Program Files`, fully close the target
 
 Recent Freebuff builds (for example `0.0.192`) declare `"type": "module"` and use `electron/main.cjs` as their entry point. The patcher writes the hook as `rtl-universal.cjs` and loads it with `require` from that `.cjs` entry, so the ESM loader error no longer occurs. If the panel reports **needs update** for Freebuff, close the app and click **Update patch**.
 
-Freebuff's composer is a `contenteditable` element with the `composer-input` class, not a `textarea`. The engine now detects direction from the typed text for such editors and sets `dir` on the element. To diagnose a remaining issue, run `diagnose-freebuff.bat` with Freebuff closed; it writes `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl`.
+Freebuff's composer is a `contenteditable` element with the `composer-input` class, not a `textarea`. The engine detects direction from the typed text for such editors and sets `dir` on the element.
+
+Assistant replies are rendered inside `div.prose` after the page loads, so besides the MutationObserver the engine runs a **container sweep** that finds and directions message containers on its own — it no longer depends on the mutation queue, and it re-applies `dir` when a page strips it. Running the hook with `RTL_UNIVERSAL_DIAGNOSTICS=1` writes the runtime log `%TEMP%\CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl`, which contains counters and class names only, never chat text.
 
 The `chrome-unpacked` and `firefox-unpacked` directories are development/lint outputs; the release CRX is packed. A locally generated CRX does not replace Chrome Web Store publication/signing. The public Firefox Add-ons listing is available at [AMO](https://addons.mozilla.org/en-US/firefox/addon/cyrusasha_universalrtl/); the locally generated XPI remains unsigned and is only for testing.
 

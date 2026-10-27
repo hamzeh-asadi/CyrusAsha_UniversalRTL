@@ -27,12 +27,18 @@ const failures = [];
 
 /* یک صفحه‌ی مستقل jsdom می‌سازد و موتور را داخلش اجرا می‌کند.
  * config به موتور داده می‌شود (مثل حالت smart یا سلکتور سفارشی). */
-function makeDom(bodyHtml, config) {
+function makeDom(bodyHtml, config, options) {
+  const opts = options || {};
   const cfgScript = '<script>window.__RTL_UNIVERSAL_CONFIG__ = ' + JSON.stringify(config || {}) + ';</script>';
   const dom = new JSDOM(
     `<!doctype html><html><head>${cfgScript}</head><body>${bodyHtml}</body></html>`,
     { runScripts: 'dangerously', pretendToBeVisual: true, url: 'https://chat.example.com/' }
   );
+  if (opts.stubObserver) {
+    // Simulates a page whose mutation records never reach the engine – the
+    // exact failure mode reported for Freebuff (composer fine, replies LTR).
+    dom.window.MutationObserver = class { observe() {} disconnect() {} takeRecords() { return []; } };
+  }
   dom.window.eval(ENGINE_SRC);
   return dom;
 }
@@ -313,6 +319,70 @@ async function test(name, fn) {
     const dom = makeDom('<div class="markdown"><p>سلام دنیا</p></div>', { containerSelector: 'not-a-real-[selector' });
     await wait(80);
     assert.ok(dom.window.RTLUniversal);
+    dom.window.close();
+  });
+
+  /* ---------------- Robustness (Freebuff regressions) ---------------- */
+  await test('a lone surrogate cannot throw or block later messages', async () => {
+    const dom = makeDom('<div id="host"></div>');
+    await wait(60);
+    const host = dom.window.document.getElementById('host');
+    const broken = dom.window.document.createElement('p');
+    broken.id = 'broken';
+    // Half of an emoji: streaming text can be cut mid surrogate pair.
+    broken.textContent = 'stream ' + String.fromCharCode(0xd83d);
+    const persian = dom.window.document.createElement('p');
+    persian.id = 'after';
+    persian.textContent = 'این پیام باید راست‌چین شود';
+    host.appendChild(broken);
+    host.appendChild(persian);
+    await wait(140);
+    assert.strictEqual(dirOf(dom, '#after'), 'rtl', 'the broken element must not stop the queue');
+    assert.ok(dom.window.RTLUniversal.stats.errors >= 0);
+    assert.doesNotThrow(() => dom.window.RTLUniversal.decide('ok ' + String.fromCharCode(0xd83d) + ' more'));
+    dom.window.close();
+  });
+
+  await test('container sweep directions messages the mutation queue never delivered', async () => {
+    const dom = makeDom('<div id="host"></div>', null, { stubObserver: true });
+    await wait(60);
+    dom.window.document.getElementById('host').innerHTML =
+      '<div class="prose" id="reply"><p>سلام! این پاسخ فارسی است.</p></div>';
+    await wait(120);
+    assert.strictEqual(dirOf(dom, '#reply'), null, 'precondition: the stub observer delivers nothing');
+    dom.window.RTLUniversal.sweep();
+    assert.strictEqual(dirOf(dom, '#reply'), 'rtl');
+    assert.strictEqual(markedDirOf(dom, '#reply'), 'rtl');
+    assert.ok(dom.window.RTLUniversal.stats.sweeps >= 1);
+    dom.window.close();
+  });
+
+  await test('direction is re-applied when a page strips our attributes', async () => {
+    const dom = makeDom('<div class="markdown"><p id="m">سلام دنیا</p></div>');
+    await wait(80);
+    const el = dom.window.document.querySelector('.markdown');
+    assert.strictEqual(el.getAttribute('dir'), 'rtl');
+    el.removeAttribute('dir');
+    el.removeAttribute('data-rtl-dir');
+    await wait(140);
+    assert.strictEqual(el.getAttribute('dir'), 'rtl', 'a stripped dir attribute must be repaired');
+    assert.strictEqual(el.getAttribute('data-rtl-dir'), 'rtl');
+    dom.window.close();
+  });
+
+  await test('census reports counts without leaking message text', async () => {
+    const dom = makeDom('<div class="prose"><p>سلام دنیا، پیام محرمانه</p></div>');
+    await wait(80);
+    const census = dom.window.RTLUniversal.census();
+    assert.strictEqual(census.loaded, true);
+    assert.ok(census.containers.total >= 1);
+    assert.ok(census.containers.rtl >= 1, JSON.stringify(census.containers));
+    assert.ok(census.marked.rtl >= 1);
+    assert.ok(!JSON.stringify(census).includes('محرمانه'), 'census must stay text-free');
+    const explained = dom.window.RTLUniversal.explain(dom.window.document.querySelector('.prose'));
+    assert.strictEqual(explained.tier1, true);
+    assert.strictEqual(explained.decided, 'rtl');
+    assert.strictEqual(explained.computed, 'rtl');
     dom.window.close();
   });
 

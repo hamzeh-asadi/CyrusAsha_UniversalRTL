@@ -18,13 +18,13 @@ if (-not (Test-Path $target)) {
 }
 
 # Icon: convert the extension PNG to ICO (no external modules needed)
-$png = Join-Path $root "vscode-extension\media\icon.png"
+$png = Join-Path $root "assets\CyrusAsha_UniversalRTL-logo.png"; if (-not (Test-Path $png)) { $png = Join-Path $root "vscode-extension\media\icon.png" }
 $ico = Join-Path $here "icon.ico"
 if ((Test-Path $png) -and (-not (Test-Path $ico))) {
   try {
     Add-Type -AssemblyName System.Drawing
     $img = [System.Drawing.Image]::FromFile($png)
-    $bmp = New-Object System.Drawing.Bitmap($img, 64, 64)
+    $bmp = New-Object System.Drawing.Bitmap($img, 256, 256)
     $iconHandle = $bmp.GetHicon()
     $icon = [System.Drawing.Icon]::FromHandle($iconHandle)
     $stream = [System.IO.File]::Create($ico)

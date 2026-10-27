@@ -101,7 +101,14 @@
    * نکته: codePointAt برای کاراکترهای خارج از صفحه‌ی BMP (ایموجی، خط میخی و…)
    * عددی بزرگ‌تر از 0xFFFF برمی‌گرداند؛ String.fromCodePoint آن را درست می‌سازد. */
   function strongKind(codePoint) {
-    var ch = String.fromCodePoint(codePoint);
+    /* Half of a surrogate pair (a streamed emoji that was cut in two) and
+     * out-of-range values are not valid text. String.fromCodePoint throws on
+     * them, and a thrown error used to abort the whole processing batch —
+     * one broken character could leave every later message left-to-right. */
+    if (!(codePoint >= 0 && codePoint <= 0x10ffff)) return null;
+    if (codePoint >= 0xd800 && codePoint <= 0xdfff) return null;
+    var ch;
+    try { ch = String.fromCodePoint(codePoint); } catch (e) { return null; }
     if (RTL_RE.test(ch)) return 'rtl';
     if (LETTER_RE.test(ch)) return 'ltr';
     return null; // digits, punctuation, emoji, whitespace → neutral
@@ -342,7 +349,7 @@
   /* ------------------------------------------------------------------ *
    * 5. Applying / removing direction
    * ------------------------------------------------------------------ */
-  var stats = { processed: 0, rtl: 0, ltr: 0, skipped: 0 };
+  var stats = { processed: 0, rtl: 0, ltr: 0, skipped: 0, errors: 0, sweeps: 0 };
 
   /* ==========================================================================
    * ۵) اعمال و بازگردانی جهت
@@ -394,7 +401,7 @@
     for (var j = 0; j < autos.length; j++) restoreAttribute(autos[j], autos[j].getAttribute('data-rtl-auto'));
     var inputs = document.querySelectorAll('.rtl-universal-input-rtl');
     for (var k = 0; k < inputs.length; k++) inputs[k].classList.remove('rtl-universal-input-rtl');
-    stats.processed = stats.rtl = stats.ltr = stats.skipped = 0;
+    stats.processed = stats.rtl = stats.ltr = stats.skipped = stats.errors = stats.sweeps = 0;
   }
 
   /* ------------------------------------------------------------------ *
@@ -537,10 +544,16 @@
       else {
         var text = gatherText(el);
         var sig = text.length + '|' + text.slice(-40);
-        if (sigCache.get(el) === sig) dir = null;
-        else {
-          sigCache.set(el, sig);
-          dir = decideDirection(text);
+        var last = sigCache.get(el);
+        if (last && last.sig === sig && el.getAttribute('data-rtl-dir') === last.dir) {
+          /* Same text and our marker is still on the element: nothing to do.
+           * When a page (or a re-render) drops the marker, the check fails and
+           * the direction is applied again instead of being skipped forever. */
+          dir = null;
+        } else {
+          var decided = decideDirection(text);
+          sigCache.set(el, { sig: sig, dir: decided });
+          dir = decided;
         }
       }
       if (dir) applyDirection(el, dir);
@@ -548,6 +561,12 @@
 
     // Shadow DOM support: observe open shadow roots we encounter.
     if (CFG.shadows && el.shadowRoot) registerShadowRoot(el.shadowRoot);
+  }
+
+  /* An exception while processing one element must never stop the rest of the
+   * queue: the composer could be fixed while every later message stayed LTR. */
+  function safeProcess(el) {
+    try { processElement(el); } catch (e) { stats.errors++; }
   }
 
   /* ------------------------------------------------------------------ *
@@ -612,9 +631,57 @@
     while (queue.length && budget-- > 0) {
       var el = queue.shift();
       queued.delete(el); // allow re-processing after streaming text changes
-      processElement(el);
+      safeProcess(el);
     }
-    if (queue.length) schedule();
+    if (queue.length) {
+      schedule();
+    } else {
+      // Text renders (streaming answers) can replace the very nodes we queued.
+      // A sweep after the burst guarantees containers are directioned anyway.
+      scheduleSweep();
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * 7b. Container sweep — the self-healing pass
+   * --------------------------------------------------------------------------
+   * چرا جدا از صف MutationObserver؟
+   *   در برخی برنامه‌ها (مثل Freebuff) پیام‌های دستیار بعد از بارگذاری
+   *   صفحه ساخته می‌شوند و ممکن است هیچ‌یک از مسیرهای صف به آن‌ها نرسد.
+   *   این پیمایش کوچک، خودِ «ظرف‌های پیام» (prose/markdown/message-content و…)
+   *   را در سند پیدا می‌کند و جهت را مستقیم اعمال می‌کند؛ بنابراین حتی اگر
+   *   صف از کار بیفتد، پیام‌های فارسی راست‌چین می‌شوند.
+   *   این تابع throttle شده است تا روی چت‌های بزرگ کندی ایجاد نکند.
+   * -------------------------------------------------------------------------- */
+  var sweepTimer = null;
+  var periodicTimer = null;
+  var wakeRegistered = false;
+  var lastSweepAt = 0;
+  var SWEEP_MIN_INTERVAL = 700;   // ms بین دو پیمایش کامل
+  var SWEEP_MAX_ELEMENTS = 500;   // سقف المان‌ها در هر پیمایش
+
+  function sweepContainers(force) {
+    if (!CFG.enabled) return;
+    var now = Date.now();
+    if (!force && now - lastSweepAt < SWEEP_MIN_INTERVAL) return;
+    lastSweepAt = now;
+    var nodes = null;
+    try { nodes = document.querySelectorAll(CFG.containerSelector); } catch (e) { nodes = null; }
+    if (nodes) {
+      for (var i = 0; i < nodes.length && i < SWEEP_MAX_ELEMENTS; i++) safeProcess(nodes[i]);
+    }
+    stats.sweeps++;
+  }
+
+  function scheduleSweep() {
+    if (sweepTimer) return;
+    sweepTimer = setTimeout(function () { sweepTimer = null; sweepContainers(false); }, 350);
+  }
+
+  /* وقتی کاربر برمی‌گردد یا پنجره دوباره دیدنی می‌شود، یک پیمایش تازه.
+   * (پنجره‌های پس‌زمینه را مرورگر throttle می‌کند؛ این گوش‌دادن آن فاصله را می‌پوشاند.) */
+  function onWake() {
+    if (!document.hidden) scheduleSweep();
   }
 
   function schedule() {
@@ -628,8 +695,18 @@
    *   characterData → متن عوض شده (استریم) → نزدیک‌ترین بلوک را دوباره بررسی کن
    *   childList     → گره‌های جدید → کل زیردرختشان را صف کن */
   function onMutations(mutations) {
+    var sawChange = false;
     for (var i = 0; i < mutations.length; i++) {
-      var m = mutations[i];
+      try {
+        sawChange = handleMutation(mutations[i]) || sawChange;
+      } catch (e) { stats.errors++; }
+    }
+    if (sawChange) scheduleSweep();
+  }
+
+  function handleMutation(m) {
+    var touched = false;
+    {
       // Edits inside a contenteditable composer mutate its child text nodes; only
       // the editable root needs reprocessing (never its inner lines).
       var targetEl = m.target && (m.target.nodeType === 1 ? m.target : m.target.parentElement);
@@ -637,22 +714,30 @@
       try { composer = targetEl && targetEl.closest ? targetEl.closest(COMPOSER_SELECTOR) : null; } catch (e) { composer = null; }
       if (composer && isComposerEditor(composer)) {
         enqueue(composer);
-        continue;
+        return true;
       }
       if (m.type === 'characterData') {
         var parent = m.target.parentElement;
         if (parent) {
           enqueue(nearestCandidate(parent));
+          touched = true;
           var mono = parent.closest && parent.closest('.monaco-editor');
           if (mono) updateMonacoChatInput(mono);
+        }
+      } else if (m.type === 'attributes') {
+        if (m.target && m.target.nodeType === 1) {
+          enqueue(nearestCandidate(m.target));
+          touched = true;
         }
       } else if (m.type === 'childList') {
         for (var j = 0; j < m.addedNodes.length; j++) {
           var node = m.addedNodes[j];
           if (node.nodeType === 1) {
             enqueueTree(node);
+            touched = true;
           } else if (node.nodeType === 3 && node.parentElement) {
             enqueue(nearestCandidate(node.parentElement));
+            touched = true;
           }
         }
         // Monaco input typing mutates inside editors we normally skip.
@@ -662,6 +747,7 @@
         }
       }
     }
+    return touched;
   }
 
   var observer = null;
@@ -674,7 +760,11 @@
       childList: true,
       subtree: true,
       characterData: true,
-      characterDataOldValue: false
+      characterDataOldValue: false,
+      // A page that re-writes `dir` on its own (or drops it) must not defeat us.
+      // Only `dir` is watched: watching class/style would be far too noisy.
+      attributes: true,
+      attributeFilter: ['dir']
     });
     return obs;
   }
@@ -714,6 +804,31 @@
     Element.prototype.attachShadow = patched;
   }
 
+  /* توضیح وضعیت یک المان — بدون خواندن/ذخیره‌ی محتوای گفتگو.
+   * نمونه‌ی خروجی: { tag:'DIV', classes:'prose', tier1:true, decided:'rtl', marked:null } */
+  function explainElement(el) {
+    if (!el || el.nodeType !== 1) return null;
+    var text = '';
+    try { text = gatherText(el); } catch (e) { text = ''; }
+    var computed = null;
+    try {
+      if (global.getComputedStyle) computed = global.getComputedStyle(el).direction;
+    } catch (e) { /* ignore */ }
+    return {
+      tag: el.tagName || null,
+      classes: classString(el).trim().slice(0, 120),
+      skip: shouldSkipSubtree(el),
+      composer: isComposerEditor(el),
+      tier1: isTier1Container(el),
+      tier2: !!BLOCK_TAGS[el.tagName] || isLeafBlock(el),
+      dir: el.getAttribute('dir'),
+      marked: el.getAttribute('data-rtl-dir'),
+      decided: decideDirection(text),
+      textLength: text.length,
+      computed: computed
+    };
+  }
+
   /* ------------------------------------------------------------------ *
    * 8. Start / stop / public API
    * ------------------------------------------------------------------ */
@@ -734,7 +849,7 @@
     while (stack.length && count < 8000) {
       var node = stack.pop();
       count++;
-      processElement(node);
+      safeProcess(node);
       if (node.shadowRoot) registerShadowRoot(node.shadowRoot);
       if (shouldSkipSubtree(node)) continue;
       var children = node.children;
@@ -751,6 +866,27 @@
     }
     sigCache = new WeakMap();
     fullScan();
+    sweepContainers(true);
+  }
+
+  /* پنجره‌ی پس‌زمینه را مرورگر throttle می‌کند؛ با برگشتن کاربر یک پیمایش تازه
+   * می‌زنیم تا هیچ پیامی جا نماند. */
+  function registerWakeHandlers() {
+    if (wakeRegistered) return;
+    wakeRegistered = true;
+    try {
+      if (global.addEventListener) global.addEventListener('focus', onWake, true);
+      if (document.addEventListener) document.addEventListener('visibilitychange', onWake, true);
+    } catch (e) { /* ignore */ }
+  }
+
+  function unregisterWakeHandlers() {
+    if (!wakeRegistered) return;
+    wakeRegistered = false;
+    try {
+      if (global.removeEventListener) global.removeEventListener('focus', onWake, true);
+      if (document.removeEventListener) document.removeEventListener('visibilitychange', onWake, true);
+    } catch (e) { /* ignore */ }
   }
 
   /* راه‌اندازی: استایل + patch کردن attachShadow + observer + اسکن اولیه. */
@@ -767,11 +903,23 @@
         if (hosts[i].shadowRoot) registerShadowRoot(hosts[i].shadowRoot);
       }
     }
+    registerWakeHandlers();
+    // Safety net: even if a page swallows our mutation records, the containers
+    // are re-checked periodically (cheap; skips work when nothing changed).
+    if (typeof setInterval === 'function' && !periodicTimer) {
+      periodicTimer = setInterval(function () {
+        if (!document.hidden) sweepContainers(false);
+      }, 5000);
+    }
+    sweepContainers(true);
   }
 
   /* توقف کامل: قطع observerها، بازگردانی همه‌ی dirها و حذف استایل‌ها. */
   function destroy() {
     if (observer) { observer.disconnect(); observer = null; }
+    if (sweepTimer) { clearTimeout(sweepTimer); sweepTimer = null; }
+    if (periodicTimer) { clearInterval(periodicTimer); periodicTimer = null; }
+    unregisterWakeHandlers();
     for (var i = 0; i < shadowObservers.length; i++) shadowObservers[i].disconnect();
     shadowObservers = [];
     restoreAll();
@@ -802,6 +950,35 @@
     get stats() { return Object.assign({}, stats); },
     decide: decideDirection,
     refresh: function () { reprocessAll(); },
+    /* پیمایش دستی ظرف‌های پیام (همان کاری که خودکار بعد از هر تغییر انجام می‌شود). */
+    sweep: function () { sweepContainers(true); },
+    /* چرا این المان (نه) جهت‌دهی شد؟ برای عیب‌یابی — فقط کلاس/طول متن، بدون محتوا. */
+    explain: explainElement,
+    /* گزارش شمارشی و بدون متن — همان چیزی که در لاگ عیب‌یابی ذخیره می‌شود. */
+    census: function () {
+      var out = {
+        version: VERSION,
+        loaded: true,
+        mode: CFG.mode,
+        enabled: CFG.enabled,
+        stats: Object.assign({}, stats),
+        containers: { total: 0 },
+        marked: { rtl: 0, ltr: 0 },
+        samples: []
+      };
+      try {
+        var nodes = document.querySelectorAll(CFG.containerSelector);
+        out.containers.total = nodes.length;
+        for (var i = 0; i < nodes.length && i < 200; i++) {
+          var key = nodes[i].getAttribute('data-rtl-dir') || 'none';
+          out.containers[key] = (out.containers[key] || 0) + 1;
+          if (out.samples.length < 3) out.samples.push(explainElement(nodes[i]));
+        }
+        out.marked.rtl = document.querySelectorAll('[data-rtl-dir="rtl"]').length;
+        out.marked.ltr = document.querySelectorAll('[data-rtl-dir="ltr"]').length;
+      } catch (e) { out.error = String(e && e.message || e); }
+      return out;
+    },
     setMode: function (mode) {
       if (['smart', 'rtl', 'ltr'].indexOf(mode) === -1) return;
       CFG.mode = mode;

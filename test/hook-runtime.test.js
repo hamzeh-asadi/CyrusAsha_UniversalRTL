@@ -32,6 +32,7 @@ function loadHook({ contents, diagnostics, logPath }) {
   const env = {
     RTL_UNIVERSAL_DIAGNOSTICS: diagnostics ? '1' : '0',
     RTL_UNIVERSAL_DIAGNOSTICS_PATH: logPath,
+    RTL_UNIVERSAL_TRIGGER_INTERVAL: '20',
     TEMP: path.dirname(logPath || os.tmpdir()),
     TMP: path.dirname(logPath || os.tmpdir())
   };
@@ -47,10 +48,15 @@ function loadHook({ contents, diagnostics, logPath }) {
     Promise,
     Buffer,
     setTimeout,
-    clearTimeout
+    clearTimeout,
+    // Fake interval: the test drives the trigger poll itself, so no real timer
+    // can keep the process alive after the assertions.
+    setInterval: (fn) => { intervals.push(fn); return intervals.length; },
+    clearInterval: () => {}
   };
+  const intervals = [];
   vm.runInNewContext(patcher.HOOK_SOURCE, context, { filename: patcher.HOOK_FILE });
-  return { app, electron };
+  return { app, electron, intervals };
 }
 
 const wait = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -84,7 +90,8 @@ const wait = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
       return Promise.resolve(result);
     };
 
-    loadHook({ contents, diagnostics: true, logPath });
+    const hook = loadHook({ contents, diagnostics: true, logPath });
+    assert.ok(hook.intervals.length >= 1, 'the hook must poll for a report request');
     await wait(); // app.whenReady -> attach existing contents
     contents.emit('dom-ready');
     await wait(); // main-world rejection -> isolated-world fallback
@@ -113,6 +120,37 @@ const wait = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
       'runtime diagnostics must not include message contents');
 
     console.log('  ✓ CSP rejection falls back to an isolated world and records metadata only');
+
+    /* --- Live report: a trigger file asks the *running* app, no restart --- */
+    contents.executeJavaScript = () => Promise.resolve({
+      loaded: true,
+      version: '1.0.0',
+      mode: 'smart',
+      proseCount: 2,
+      rtlCount: 2,
+      containers: { total: 2, rtl: 2 },
+      marked: { rtl: 2, ltr: 0 },
+      stats: { processed: 12, rtl: 5, ltr: 1, skipped: 2, errors: 0, sweeps: 3 },
+      samples: [{ tier1: true, decided: 'rtl', textLength: 42, classes: 'prose' }]
+    });
+    const trigger = path.join(temp, 'CyrusAsha_UniversalRTL-dump-request.json');
+    fs.writeFileSync(trigger, 'report', 'utf8');
+    hook.intervals.forEach((poll) => poll());
+    await wait(60);
+
+    assert.ok(!fs.existsSync(trigger), 'the trigger file must be consumed and removed');
+    const reportLines = fs.readFileSync(logPath, 'utf8').trim().split(/\r?\n/).map((line) => JSON.parse(line));
+    const report = reportLines.find((r) => r.event === 'renderer-report');
+    assert.ok(report, 'a live report must be written when the trigger file appears: ' + JSON.stringify(reportLines.map((r) => r.event)));
+    assert.strictEqual(report.details.status.loaded, true);
+    assert.strictEqual(report.details.status.proseCount, 2);
+    assert.strictEqual(report.details.status.containers.total, 2);
+    assert.strictEqual(report.details.status.stats.sweeps, 3);
+    assert.ok(reportLines.some((r) => r.event === 'dump-finished'), 'the dump must be closed out');
+    assert.ok(!/سلام|محرمانه|confidential message/i.test(fs.readFileSync(logPath, 'utf8')),
+      'live reports must stay text-free');
+
+    console.log('  ✓ trigger file yields a live report from the running app (text-free)');
   } finally {
     if (dom) dom.window.close();
     fs.rmSync(temp, { recursive: true, force: true });

@@ -83,7 +83,7 @@ const SCRIPT_EXTS = new Set(['.js', '.cjs']);
  *     سیاست CSP برنامه را تغییر نمی‌دهد و unsafe-eval اضافه نمی‌کند
  *   - گزارش runtime فقط با opt-in و فقط شامل نسخه/وضعیت/شمارنده‌هاست؛ متن گفتگو را نمی‌خواند
  * ========================================================================== */
-const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://github.com/rtl-universal) */
+const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v3 (https://github.com/rtl-universal) */
 (function () {
   'use strict';
   var electron = null;
@@ -100,15 +100,33 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://gi
   var diagnostics = false;
   try { diagnostics = process.env.RTL_UNIVERSAL_DIAGNOSTICS === '1'; } catch (e) {}
   var diagnosticPath = null;
-  if (diagnostics) {
-    try {
-      diagnosticPath = process.env.RTL_UNIVERSAL_DIAGNOSTICS_PATH || path.join(
-        process.env.TEMP || process.env.TMP || process.cwd(),
-        'CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl'
-      );
-      fs.writeFileSync(diagnosticPath, '', 'utf8');
-    } catch (e) { diagnosticPath = null; }
+
+  /* نام فایل «درخواست گزارش»: اگر این فایل در پوشه‌ی TEMP ساخته شود، همین
+   * پروسه‌ی در حال اجرا بدون بستن برنامه یک گزارش تازه می‌نویسد. */
+  var TRIGGER_FILE = 'CyrusAsha_UniversalRTL-dump-request.json';
+  var HOOK_VERSION = 'hook/3';
+  function versionString() { return HOOK_VERSION; }
+  function tempDir() {
+    try { return process.env.TEMP || process.env.TMP || process.cwd(); } catch (e) { return process.cwd(); }
   }
+  function defaultDiagnosticPath() {
+    return path.join(tempDir(), 'CyrusAsha_UniversalRTL-Freebuff-runtime.jsonl');
+  }
+  function triggerPath() { return path.join(tempDir(), TRIGGER_FILE); }
+
+  /* گزارش را روشن می‌کند (چه با متغیر محیطی، چه با درخواست فایل) و فایل را خالی می‌کند. */
+  function enableDiagnostics() {
+    diagnostics = true;
+    if (!diagnosticPath) {
+      try {
+        diagnosticPath = process.env.RTL_UNIVERSAL_DIAGNOSTICS_PATH || defaultDiagnosticPath();
+      } catch (e) { diagnosticPath = null; }
+    }
+    if (!diagnosticPath) return false;
+    try { fs.writeFileSync(diagnosticPath, '', 'utf8'); return true; } catch (e) { return false; }
+  }
+
+  if (diagnostics) enableDiagnostics();
 
   function diag(event, contents, details) {
     if (!diagnostics || !diagnosticPath) return;
@@ -143,18 +161,32 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://gi
     };
   }
 
+  /* فقط مقدارهای کوچک و بدون‌متن از نتیجه‌ی صفحه جدا می‌شوند تا لاگ هرگز
+   * محتوای گفتگو را نگیرد (شمارنده، نام کلاس و طول متن مجاز است). */
   function summarize(result) {
     if (result && typeof result === 'object') {
-      return {
-        loaded: !!result.loaded,
-        version: result.version || null,
-        mode: result.mode || null,
-        proseCount: Number(result.proseCount) || 0,
-        rtlCount: Number(result.rtlCount) || 0,
-        stats: result.stats || null
-      };
+      var out = {};
+      var keys = Object.keys(result).slice(0, 14);
+      for (var i = 0; i < keys.length; i++) {
+        var key = keys[i];
+        var value = result[key];
+        if (typeof value === 'string') out[key] = value.slice(0, 200);
+        else if (value === null || typeof value === 'number' || typeof value === 'boolean') out[key] = value;
+        else if (typeof value === 'object') out[key] = value;
+      }
+      return out;
     }
     return { loaded: result === true, version: null, mode: null, proseCount: 0, rtlCount: 0, stats: null };
+  }
+
+  /* گزارش شمارشی صفحه: چند ظرف پیام وجود دارد، چند تایشان dir گرفتند و
+   * موتور چه تصمیمی گرفت — بدون هیچ کاراکتری از متن گفتگو. */
+  function censusCode() {
+    return ';(function(){try{var r=window.RTLUniversal;if(!r)return{loaded:false};' +
+      'var p=document.querySelectorAll(".prose");var q=document.querySelectorAll(".prose[data-rtl-dir=rtl]");' +
+      'var c=r.census?r.census():{};c.loaded=true;c.version=r.version||null;c.mode=r.config&&r.config.mode||null;' +
+      'c.proseCount=p.length;c.rtlCount=q.length;c.title=String(document.title||"").slice(0,80);' +
+      'c.href=String(location.href||"").slice(0,120);return c;}catch(e){return{loaded:false,error:String(e&&e.message||e)}}})()';
   }
 
   diag('hook-loaded', null, { diagnostics: diagnostics });
@@ -179,10 +211,11 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://gi
     if (extraCss) cfg.extraCSS = (cfg.extraCSS ? cfg.extraCSS + String.fromCharCode(10) : '') + extraCss;
     var code = 'window.__RTL_UNIVERSAL_CONFIG__ = ' + JSON.stringify(cfg) + ';' + String.fromCharCode(10) + engineSource;
     if (!diagnostics) return code + String.fromCharCode(10) + ';!!(window.RTLUniversal && window.RTLUniversal.version)';
-    return code + String.fromCharCode(10) + ';(function(){var r=window.RTLUniversal;var p=document.querySelectorAll(".prose");var q=document.querySelectorAll(".prose[data-rtl-dir=rtl]");return{loaded:!!r,version:r&&r.version||null,mode:r&&r.config&&r.config.mode||null,proseCount:p.length,rtlCount:q.length,stats:r&&r.stats||null};})()';
+    return code + String.fromCharCode(10) + censusCode();
   }
 
-  function injectIsolated(contents, code, reason) {
+  function injectIsolated(contents, code, reason, event) {
+    var eventName = event || 'isolated-world-result';
     try {
       if (!contents || contents.isDestroyed && contents.isDestroyed()) return;
       if (typeof contents.executeJavaScriptInIsolatedWorld !== 'function') {
@@ -191,13 +224,52 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://gi
       }
       var result = contents.executeJavaScriptInIsolatedWorld(98765, [{ code: code }], true);
       Promise.resolve(result).then(function (value) {
-        diag('isolated-world-result', contents, { reason: reason, status: summarize(value) });
+        diag(eventName, contents, { world: 'isolated', reason: reason, status: summarize(value) });
       }).catch(function (error) {
         diag('isolated-world-error', contents, { reason: reason, error: errorClass(error) });
       });
     } catch (error) {
       diag('isolated-world-error', contents, { reason: reason, error: errorClass(error) });
     }
+  }
+
+  /* یک گزارش تازه از پنجره‌ی در حال اجرا — بدون بستن برنامه و بدون DevTools. */
+  function report(contents) {
+    try {
+      if (!contents || contents.isDestroyed && contents.isDestroyed()) return;
+      var type = '';
+      try { type = contents.getType(); } catch (e) {}
+      if (type === 'remote') return;
+      var code = censusCode();
+      Promise.resolve(contents.executeJavaScript(code, true)).then(function (value) {
+        var status = summarize(value);
+        diag('renderer-report', contents, { world: 'main', status: status });
+        if (!status.loaded) injectIsolated(contents, code, 'report:main-world-marker-missing', 'renderer-report');
+      }).catch(function (error) {
+        diag('renderer-report-error', contents, { world: 'main', error: errorClass(error) });
+        injectIsolated(contents, code, 'report:main-world-failed', 'renderer-report');
+      });
+    } catch (error) {
+      diag('renderer-report-error', null, errorClass(error));
+    }
+  }
+
+  function dumpNow() {
+    if (!enableDiagnostics()) return;
+    diag('dump-request', null, { trigger: TRIGGER_FILE, version: versionString() });
+    var list = [];
+    try { list = electron.webContents.getAllWebContents(); } catch (e) { list = []; }
+    for (var i = 0; i < list.length; i++) report(list[i]);
+    diag('dump-finished', null, { renderers: list.length });
+  }
+
+  function pollTrigger() {
+    try {
+      var file = triggerPath();
+      if (!fs.existsSync(file)) return;
+      try { fs.rmSync(file, { force: true }); } catch (e) {}
+      dumpNow();
+    } catch (e) {}
   }
 
   function injectInto(contents) {
@@ -242,8 +314,16 @@ const HOOK_SOURCE = `/* CyrusAsha_UniversalRTL-1.0.0 runtime hook v2 (https://gi
       try {
         electron.webContents.getAllWebContents().forEach(attach);
       } catch (e) { diag('enumerate-web-contents-error', null, errorClass(e)); }
+      pollTrigger();
     });
   } catch (e) { diag('when-ready-error', null, errorClass(e)); }
+
+  /* درخواست گزارش زنده: فایل trigger در TEMP هر دو ثانیه بررسی می‌شود.
+   * این کار صفحه را تغییر نمی‌دهد؛ فقط می‌خواند و یک گزارش بدون‌متن می‌نویسد. */
+  try {
+    var pollMs = Number(process.env.RTL_UNIVERSAL_TRIGGER_INTERVAL) || 2000;
+    if (typeof setInterval === 'function') setInterval(pollTrigger, pollMs);
+  } catch (e) {}
 })();
 `;
 
